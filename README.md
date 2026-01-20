@@ -180,7 +180,7 @@ This creates:
 - A directory named `<project-name>`
 - A `.craizy/` subdirectory with configuration files
 - `config.yaml` - Project configuration
-- `ais.yaml` - AI definitions and commands
+- `agents.yaml` - AI agent CLI commands
 
 ### Start the Dashboard
 
@@ -201,28 +201,51 @@ This launches an interactive tmux-based TUI dashboard where you can:
 
 ### Configuration
 
-Edit `.craizy/ais.yaml` to customize available AI options:
+crAIzy uses CLI-based AI agents that can be easily managed without API keys.
 
-```yaml
-ais:
-  - name: GPT-4
-    command: openai-cli chat --model gpt-4
-    options:
-      api_key: $OPENAI_API_KEY
-  
-  - name: Claude
-    command: anthropic-cli chat --model claude-3-opus
-    options:
-      api_key: $ANTHROPIC_API_KEY
-  
-  - name: Local LLaMA
-    command: ollama run llama2
+#### Managing Agents
+
+Add new AI agents using their CLI commands:
+
+```bash
+craizy agent add "claude --dangerously-skip-permissions"
+craizy agent add "copilot --allow-all-tools"
+craizy agent add "aider"
 ```
 
-Each AI entry specifies:
-- **name**: Display name for the AI
-- **command**: Shell command to run the AI
-- **options**: Environment variables or configuration (optional)
+List configured agents:
+
+```bash
+craizy agent list
+```
+
+Remove an agent:
+
+```bash
+craizy agent remove Claude
+```
+
+#### Agent Configuration File
+
+Agents are stored in `.craizy/agents.yaml`:
+
+```yaml
+agents:
+  - name: Claude
+    command: claude --dangerously-skip-permissions
+  
+  - name: Copilot
+    command: copilot --allow-all-tools
+  
+  - name: Aider
+    command: aider
+```
+
+Each agent entry specifies:
+- **name**: Display name for the AI agent
+- **command**: CLI command to launch the agent (executed in a new tmux window)
+
+**Note**: The tool doesn't check if CLI tools are installed - it simply launches them in tmux windows.
 
 ## Commands
 
@@ -230,6 +253,9 @@ Each AI entry specifies:
 |---------|-------------|
 | `craizy init <name>` | Initialize a new crAIzy project |
 | `craizy start` | Start the interactive dashboard |
+| `craizy agent add <command>` | Add a new AI agent |
+| `craizy agent list` | List all configured agents |
+| `craizy agent remove <name>` | Remove an agent |
 | `craizy version` | Show version information |
 | `craizy help` | Display help message |
 
@@ -269,14 +295,14 @@ Configuration is stored in `.craizy/config.yaml`:
 project_name: my-project
 ```
 
-AI definitions are in `.craizy/ais.yaml`:
+AI agent definitions are in `.craizy/agents.yaml`:
 
 ```yaml
-ais:
-  - name: GPT-4
-    command: openai-cli chat --model gpt-4
-    options:
-      api_key: $OPENAI_API_KEY
+agents:
+  - name: Claude
+    command: claude --dangerously-skip-permissions
+  - name: Copilot
+    command: copilot --allow-all-tools
 ```
 
 ## CI/CD

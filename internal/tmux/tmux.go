@@ -2,6 +2,7 @@ package tmux
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -51,6 +52,39 @@ func (m *Manager) CreateSession(name, command string) (*Session, error) {
 	}
 
 	m.sessions[sessionName] = session
+	return session, nil
+}
+
+// CreateWindow creates a new tmux window and sends keys to it
+func (m *Manager) CreateWindow(name, command string) (*Session, error) {
+	windowName := fmt.Sprintf("%s-%s", m.sessionPrefix, name)
+
+	// Check if we're in a tmux session
+	// If not in tmux (TMUX env var not set), fall back to creating a new session
+	// This ensures the command can still be executed in an isolated tmux session
+	if os.Getenv("TMUX") == "" {
+		return m.CreateSession(name, command)
+	}
+
+	// Create new window in current session
+	cmd := exec.Command("tmux", "new-window", "-n", windowName)
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("failed to create window: %w", err)
+	}
+
+	// Send the command keys to the new window
+	if err := m.SendKeys(windowName, command); err != nil {
+		return nil, fmt.Errorf("failed to send keys: %w", err)
+	}
+
+	session := &Session{
+		ID:      windowName,
+		Name:    name,
+		Command: command,
+		Active:  true,
+	}
+
+	m.sessions[windowName] = session
 	return session, nil
 }
 
@@ -126,4 +160,32 @@ func GetTmuxVersion() (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(string(output)), nil
+}
+
+// SendKeys sends keystrokes to a tmux session
+func (m *Manager) SendKeys(sessionID string, keys string) error {
+	if !m.SessionExists(sessionID) {
+		return fmt.Errorf("session %s does not exist", sessionID)
+	}
+
+	cmd := exec.Command("tmux", "send-keys", "-t", sessionID, keys)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to send keys: %w", err)
+	}
+
+	return nil
+}
+
+// SendKeysLiteral sends literal keys to a tmux session (without Enter)
+func (m *Manager) SendKeysLiteral(sessionID string, keys string) error {
+	if !m.SessionExists(sessionID) {
+		return fmt.Errorf("session %s does not exist", sessionID)
+	}
+
+	cmd := exec.Command("tmux", "send-keys", "-t", sessionID, "-l", keys)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to send keys: %w", err)
+	}
+
+	return nil
 }
