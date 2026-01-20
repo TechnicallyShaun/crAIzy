@@ -172,7 +172,7 @@ func GetTmuxVersion() (string, error) {
 }
 
 // SendKeysNoEnter sends keystrokes to a tmux session without appending Enter
-func (m *Manager) SendKeysNoEnter(sessionID string, keys string) error {
+func (m *Manager) SendKeysNoEnter(sessionID, keys string) error {
 	if !m.SessionExists(sessionID) {
 		return fmt.Errorf("session %s does not exist", sessionID)
 	}
@@ -186,7 +186,7 @@ func (m *Manager) SendKeysNoEnter(sessionID string, keys string) error {
 }
 
 // SendKeysLiteral sends literal keys to a tmux session (without Enter)
-func (m *Manager) SendKeysLiteral(sessionID string, keys string) error {
+func (m *Manager) SendKeysLiteral(sessionID, keys string) error {
 	if !m.SessionExists(sessionID) {
 		return fmt.Errorf("session %s does not exist", sessionID)
 	}
