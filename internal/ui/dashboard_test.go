@@ -125,9 +125,9 @@ func TestSpawnMultipleAIs(t *testing.T) {
 		defer tmuxMgr.KillSession(ai1.Session.ID)
 	}
 
-	ai2, err2 := dashboard.SpawnAI(aiSpec2)
-	if err2 != nil {
-		t.Fatalf("Second SpawnAI failed: %v", err2)
+	ai2, err := dashboard.SpawnAI(aiSpec2)
+	if err != nil {
+		t.Fatalf("Second SpawnAI failed: %v", err)
 	}
 	if ai2 == nil {
 		t.Fatal("ai2 should not be nil")
@@ -168,7 +168,9 @@ func TestGetAIInstance(t *testing.T) {
 	ai := dashboard.GetAIInstance(1)
 	if ai == nil {
 		t.Error("GetAIInstance should return AI for valid ID")
-	} else if ai.ID != 1 {
+		return
+	}
+	if ai.ID != 1 {
 		t.Errorf("Expected AI ID 1, got %d", ai.ID)
 	}
 
