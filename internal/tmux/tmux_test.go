@@ -25,11 +25,11 @@ func TestIsTmuxAvailable(t *testing.T) {
 	// This test checks if tmux is available on the system
 	// It's expected to pass in CI environments with tmux installed
 	available := IsTmuxAvailable()
-	
+
 	// Try to verify with direct command
 	cmd := exec.Command("which", "tmux")
 	err := cmd.Run()
-	
+
 	if err == nil && !available {
 		t.Error("tmux is in PATH but IsTmuxAvailable returned false")
 	}

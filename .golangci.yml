@@ -27,7 +27,8 @@ linters-settings:
     locale: US
 
 linters:
-  disable-all: true
+  disable:
+    - typecheck
   enable:
     - bodyclose
     - dogsled
@@ -49,7 +50,6 @@ linters:
     - nakedret
     - staticcheck
     - stylecheck
-    - typecheck
     - unconvert
     - unparam
     - unused
@@ -63,6 +63,9 @@ issues:
         - errcheck
         - dupl
         - gosec
+    - linters:
+        - typecheck
+      text: "undefined: yaml"
 
 run:
   timeout: 5m

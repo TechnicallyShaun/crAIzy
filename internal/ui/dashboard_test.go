@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/TechnicallyShaun/crAIzy/internal/config"
@@ -224,14 +225,7 @@ func TestGenerateDashboardScript(t *testing.T) {
 	// Check for essential commands
 	essentialCommands := []string{"clear", "echo", "read"}
 	for _, cmd := range essentialCommands {
-		found := false
-		for i := 0; i < len(script)-len(cmd); i++ {
-			if script[i:i+len(cmd)] == cmd {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !strings.Contains(script, cmd) {
 			t.Errorf("Script should contain '%s' command", cmd)
 		}
 	}
