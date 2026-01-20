@@ -54,6 +54,42 @@ func (m *Manager) CreateSession(name, command string) (*Session, error) {
 	return session, nil
 }
 
+// CreateWindow creates a new tmux window and sends keys to it
+func (m *Manager) CreateWindow(name, command string) (*Session, error) {
+	windowName := fmt.Sprintf("%s-%s", m.sessionPrefix, name)
+
+	// Create new window in current session or create new session if not in tmux
+	cmd := exec.Command("tmux", "new-window", "-n", windowName)
+	if err := cmd.Run(); err != nil {
+		// If not in tmux, create a new session instead
+		return m.CreateSession(name, command)
+	}
+
+	// Send the command keys to the new window
+	if err := m.SendKeys(windowName, command); err != nil {
+		return nil, fmt.Errorf("failed to send keys: %w", err)
+	}
+
+	session := &Session{
+		ID:      windowName,
+		Name:    name,
+		Command: command,
+		Active:  true,
+	}
+
+	m.sessions[windowName] = session
+	return session, nil
+}
+
+// SendKeys sends keys to a tmux window or pane
+func (m *Manager) SendKeys(target, keys string) error {
+	cmd := exec.Command("tmux", "send-keys", "-t", target, keys, "Enter")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to send keys: %w", err)
+	}
+	return nil
+}
+
 // SessionExists checks if a tmux session exists
 func (m *Manager) SessionExists(name string) bool {
 	cmd := exec.Command("tmux", "has-session", "-t", name)

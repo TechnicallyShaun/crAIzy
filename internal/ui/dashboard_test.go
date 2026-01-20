@@ -11,7 +11,7 @@ import (
 func TestNewDashboard(t *testing.T) {
 	cfg := &config.Config{
 		ProjectName: "test",
-		AIs: []config.AISpec{
+		Agents: []config.Agent{
 			{Name: "TestAI", Command: "echo test"},
 		},
 	}
@@ -51,17 +51,17 @@ func TestSpawnAI(t *testing.T) {
 
 	cfg := &config.Config{
 		ProjectName: "test",
-		AIs:         []config.AISpec{},
+		Agents:      []config.Agent{},
 	}
 	tmuxMgr := tmux.NewManager()
 	dashboard := NewDashboard(cfg, tmuxMgr)
 
-	aiSpec := config.AISpec{
+	agent := config.Agent{
 		Name:    "TestAI",
 		Command: "echo 'test'; sleep 2",
 	}
 
-	ai, err := dashboard.SpawnAI(aiSpec)
+	ai, err := dashboard.SpawnAI(agent)
 	if err != nil {
 		t.Fatalf("SpawnAI failed: %v", err)
 	}
@@ -100,21 +100,21 @@ func TestSpawnMultipleAIs(t *testing.T) {
 
 	cfg := &config.Config{
 		ProjectName: "test",
-		AIs:         []config.AISpec{},
+		Agents:      []config.Agent{},
 	}
 	tmuxMgr := tmux.NewManager()
 	dashboard := NewDashboard(cfg, tmuxMgr)
 
-	aiSpec1 := config.AISpec{
+	agent1 := config.Agent{
 		Name:    "TestAI1",
 		Command: "sleep 2",
 	}
-	aiSpec2 := config.AISpec{
+	agent2 := config.Agent{
 		Name:    "TestAI2",
 		Command: "sleep 2",
 	}
 
-	ai1, err := dashboard.SpawnAI(aiSpec1)
+	ai1, err := dashboard.SpawnAI(agent1)
 	if err != nil {
 		t.Fatalf("First SpawnAI failed: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestSpawnMultipleAIs(t *testing.T) {
 		defer tmuxMgr.KillSession(ai1.Session.ID)
 	}
 
-	ai2, err := dashboard.SpawnAI(aiSpec2)
+	ai2, err := dashboard.SpawnAI(agent2)
 	if err != nil {
 		t.Fatalf("Second SpawnAI failed: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestSpawnMultipleAIs(t *testing.T) {
 func TestGetAIInstance(t *testing.T) {
 	cfg := &config.Config{
 		ProjectName: "test",
-		AIs:         []config.AISpec{},
+		Agents:      []config.Agent{},
 	}
 	tmuxMgr := tmux.NewManager()
 	dashboard := NewDashboard(cfg, tmuxMgr)
@@ -210,9 +210,9 @@ func TestPadRight(t *testing.T) {
 func TestGenerateDashboardScript(t *testing.T) {
 	cfg := &config.Config{
 		ProjectName: "test-project",
-		AIs: []config.AISpec{
-			{Name: "GPT-4", Command: "gpt4-cli"},
-			{Name: "Claude", Command: "claude-cli"},
+		Agents: []config.Agent{
+			{Name: "Claude", Command: "claude --dangerously-skip-permissions"},
+			{Name: "Copilot", Command: "copilot --allow-all-tools"},
 		},
 	}
 	tmuxMgr := tmux.NewManager()
@@ -245,7 +245,7 @@ func TestGenerateDashboardScript(t *testing.T) {
 func TestDashboardStartWithoutTmux(t *testing.T) {
 	cfg := &config.Config{
 		ProjectName: "test",
-		AIs:         []config.AISpec{},
+		Agents:      []config.Agent{},
 	}
 	tmuxMgr := tmux.NewManager()
 	dashboard := NewDashboard(cfg, tmuxMgr)

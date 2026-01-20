@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/TechnicallyShaun/crAIzy/internal/config"
 	"github.com/TechnicallyShaun/crAIzy/internal/tmux"
@@ -29,6 +30,13 @@ func main() {
 		handleInit(os.Args[2])
 	case "start":
 		handleStart()
+	case "agent":
+		if len(os.Args) < 3 {
+			fmt.Println("Error: agent subcommand required")
+			fmt.Println("Usage: craizy agent <add|list|remove>")
+			os.Exit(1)
+		}
+		handleAgent(os.Args[2:])
 	case "version":
 		fmt.Printf("crAIzy v%s\n", version)
 	case "help":
@@ -74,12 +82,96 @@ func handleStart() {
 	}
 }
 
+func handleAgent(args []string) {
+	if len(args) < 1 {
+		fmt.Println("Error: agent subcommand required")
+		fmt.Println("Usage: craizy agent <add|list|remove>")
+		os.Exit(1)
+	}
+
+	subcommand := args[0]
+
+	switch subcommand {
+	case "add":
+		if len(args) < 2 {
+			fmt.Println("Error: command required")
+			fmt.Println("Usage: craizy agent add <command>")
+			fmt.Println("Example: craizy agent add \"claude --dangerously-skip-permissions\"")
+			os.Exit(1)
+		}
+		handleAgentAdd(args[1])
+	case "list":
+		handleAgentList()
+	case "remove":
+		if len(args) < 2 {
+			fmt.Println("Error: agent name required")
+			fmt.Println("Usage: craizy agent remove <name>")
+			os.Exit(1)
+		}
+		handleAgentRemove(args[1])
+	default:
+		fmt.Printf("Unknown agent subcommand: %s\n", subcommand)
+		fmt.Println("Usage: craizy agent <add|list|remove>")
+		os.Exit(1)
+	}
+}
+
+func handleAgentAdd(command string) {
+	// Parse command to extract name (first word)
+	parts := strings.Fields(command)
+	if len(parts) == 0 {
+		fmt.Println("Error: invalid command")
+		os.Exit(1)
+	}
+
+	name := strings.Title(parts[0])
+
+	if err := config.AddAgent(name, command); err != nil {
+		fmt.Printf("Error adding agent: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✓ Added agent: %s\n", name)
+	fmt.Printf("  Command: %s\n", command)
+}
+
+func handleAgentList() {
+	agents, err := config.ListAgents()
+	if err != nil {
+		fmt.Printf("Error listing agents: %v\n", err)
+		os.Exit(1)
+	}
+
+	if len(agents) == 0 {
+		fmt.Println("No agents configured")
+		return
+	}
+
+	fmt.Println("Configured agents:")
+	for i, agent := range agents {
+		fmt.Printf("  %d. %s\n", i+1, agent.Name)
+		fmt.Printf("     Command: %s\n", agent.Command)
+	}
+}
+
+func handleAgentRemove(name string) {
+	if err := config.RemoveAgent(name); err != nil {
+		fmt.Printf("Error removing agent: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✓ Removed agent: %s\n", name)
+}
+
 func printUsage() {
 	fmt.Println("crAIzy - AI-powered terminal multiplexer")
 	fmt.Println()
 	fmt.Println("Usage:")
-	fmt.Println("  craizy init <name>    Initialize a new crAIzy project")
-	fmt.Println("  craizy start          Start the dashboard")
-	fmt.Println("  craizy version        Show version")
-	fmt.Println("  craizy help           Show this help")
+	fmt.Println("  craizy init <name>              Initialize a new crAIzy project")
+	fmt.Println("  craizy start                    Start the dashboard")
+	fmt.Println("  craizy agent add <command>      Add a new agent")
+	fmt.Println("  craizy agent list               List all agents")
+	fmt.Println("  craizy agent remove <name>      Remove an agent")
+	fmt.Println("  craizy version                  Show version")
+	fmt.Println("  craizy help                     Show this help")
 }

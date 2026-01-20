@@ -108,9 +108,9 @@ func (d *Dashboard) generateDashboardScript() string {
 	sb.WriteString("echo ''\n")
 
 	// Display available AIs
-	sb.WriteString("echo '═══ Available AIs ═══'\n")
-	for i, ai := range d.config.AIs {
-		sb.WriteString(fmt.Sprintf("echo '  %d. %s - %s'\n", i+1, ai.Name, ai.Command))
+	sb.WriteString("echo '═══ Available Agents ═══'\n")
+	for i, agent := range d.config.Agents {
+		sb.WriteString(fmt.Sprintf("echo '  %d. %s - %s'\n", i+1, agent.Name, agent.Command))
 	}
 	sb.WriteString("echo ''\n")
 
@@ -138,10 +138,11 @@ func padRight(s string, length int) string {
 }
 
 // SpawnAI spawns a new AI instance
-func (d *Dashboard) SpawnAI(aiSpec config.AISpec) (*AIInstance, error) {
-	instanceName := fmt.Sprintf("%s-%d", aiSpec.Name, len(d.aiInstances)+1)
+func (d *Dashboard) SpawnAI(agent config.Agent) (*AIInstance, error) {
+	instanceName := fmt.Sprintf("%s-%d", agent.Name, len(d.aiInstances)+1)
 
-	session, err := d.tmuxMgr.CreateSession(instanceName, aiSpec.Command)
+	// Use CreateWindow to create a new tmux window and send the CLI command
+	session, err := d.tmuxMgr.CreateWindow(instanceName, agent.Command)
 	if err != nil {
 		return nil, err
 	}
