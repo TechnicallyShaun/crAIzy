@@ -30,16 +30,19 @@ func TestDashboardLifecycle(t *testing.T) {
 	defer os.Chdir(originalDir)
 
 	// Change to temp directory and initialize project
-	if err := os.Chdir(tmpDir); err != nil {
+	err = os.Chdir(tmpDir)
+	if err != nil {
 		t.Fatalf("Failed to change to temp directory: %v", err)
 	}
 
-	if err := config.InitProject(projectName); err != nil {
+	err = config.InitProject(projectName)
+	if err != nil {
 		t.Fatalf("Failed to initialize project: %v", err)
 	}
 
 	// Change to project directory
-	if err := os.Chdir(projectPath); err != nil {
+	err = os.Chdir(projectPath)
+	if err != nil {
 		t.Fatalf("Failed to change to project directory: %v", err)
 	}
 
@@ -65,8 +68,9 @@ func TestDashboardLifecycle(t *testing.T) {
 
 	// Ensure cleanup of tmux session
 	defer func() {
-		if err := tmuxMgr.KillSession(sessionID); err != nil {
-			t.Logf("Warning: Failed to kill session %s: %v", sessionID, err)
+		cleanupErr := tmuxMgr.KillSession(sessionID)
+		if cleanupErr != nil {
+			t.Logf("Warning: Failed to kill session %s: %v", sessionID, cleanupErr)
 		}
 	}()
 
@@ -104,12 +108,14 @@ func TestDashboardLifecycle(t *testing.T) {
 	}
 
 	// Step 4: Press 'n' to spawn a new AI (simulate user interaction)
-	if err := tmuxMgr.SendKeysLiteral(sessionID, "n"); err != nil {
+	err = tmuxMgr.SendKeysLiteral(sessionID, "n")
+	if err != nil {
 		t.Fatalf("Failed to send 'n' key: %v", err)
 	}
 
 	// Send Enter key to confirm
-	if err := tmuxMgr.SendKeys(sessionID, "Enter"); err != nil {
+	err = tmuxMgr.SendKeysNoEnter(sessionID, "Enter")
+	if err != nil {
 		t.Fatalf("Failed to send Enter key: %v", err)
 	}
 
@@ -131,11 +137,13 @@ func TestDashboardLifecycle(t *testing.T) {
 	time.Sleep(1000 * time.Millisecond)
 
 	// Step 6: Press 'q' to quit the dashboard
-	if err := tmuxMgr.SendKeysLiteral(sessionID, "q"); err != nil {
+	err = tmuxMgr.SendKeysLiteral(sessionID, "q")
+	if err != nil {
 		t.Fatalf("Failed to send 'q' key: %v", err)
 	}
 
-	if err := tmuxMgr.SendKeys(sessionID, "Enter"); err != nil {
+	err = tmuxMgr.SendKeysNoEnter(sessionID, "Enter")
+	if err != nil {
 		t.Fatalf("Failed to send Enter key: %v", err)
 	}
 
@@ -177,16 +185,19 @@ func TestDashboardLifecycleWithListCommand(t *testing.T) {
 	defer os.Chdir(originalDir)
 
 	// Change to temp directory and initialize project
-	if err := os.Chdir(tmpDir); err != nil {
+	err = os.Chdir(tmpDir)
+	if err != nil {
 		t.Fatalf("Failed to change to temp directory: %v", err)
 	}
 
-	if err := config.InitProject(projectName); err != nil {
+	err = config.InitProject(projectName)
+	if err != nil {
 		t.Fatalf("Failed to initialize project: %v", err)
 	}
 
 	// Change to project directory
-	if err := os.Chdir(projectPath); err != nil {
+	err = os.Chdir(projectPath)
+	if err != nil {
 		t.Fatalf("Failed to change to project directory: %v", err)
 	}
 
@@ -212,8 +223,9 @@ func TestDashboardLifecycleWithListCommand(t *testing.T) {
 
 	// Ensure cleanup of tmux session
 	defer func() {
-		if err := tmuxMgr.KillSession(sessionID); err != nil {
-			t.Logf("Warning: Failed to kill session %s: %v", sessionID, err)
+		cleanupErr := tmuxMgr.KillSession(sessionID)
+		if cleanupErr != nil {
+			t.Logf("Warning: Failed to kill session %s: %v", sessionID, cleanupErr)
 		}
 	}()
 
@@ -221,11 +233,13 @@ func TestDashboardLifecycleWithListCommand(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	// Press 'l' to list AIs
-	if err := tmuxMgr.SendKeysLiteral(sessionID, "l"); err != nil {
+	err = tmuxMgr.SendKeysLiteral(sessionID, "l")
+	if err != nil {
 		t.Fatalf("Failed to send 'l' key: %v", err)
 	}
 
-	if err := tmuxMgr.SendKeys(sessionID, "Enter"); err != nil {
+	err = tmuxMgr.SendKeysNoEnter(sessionID, "Enter")
+	if err != nil {
 		t.Fatalf("Failed to send Enter key: %v", err)
 	}
 
@@ -246,7 +260,7 @@ func TestDashboardLifecycleWithListCommand(t *testing.T) {
 	// Clean up with 'q'
 	time.Sleep(2 * time.Second)
 	tmuxMgr.SendKeysLiteral(sessionID, "q")
-	tmuxMgr.SendKeys(sessionID, "Enter")
+	tmuxMgr.SendKeysNoEnter(sessionID, "Enter")
 	time.Sleep(500 * time.Millisecond)
 }
 
@@ -270,7 +284,8 @@ func TestDashboardStartDetachedCleanup(t *testing.T) {
 
 	// Initialize project
 	os.Chdir(tmpDir)
-	if err := config.InitProject(projectName); err != nil {
+	err = config.InitProject(projectName)
+	if err != nil {
 		t.Fatalf("Failed to initialize project: %v", err)
 	}
 

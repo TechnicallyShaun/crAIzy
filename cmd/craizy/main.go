@@ -126,7 +126,7 @@ func handleAgentAdd(command string) {
 
 	// Capitalize the first letter of the first word
 	name := parts[0]
-	if len(name) > 0 {
+	if name != "" {
 		name = strings.ToUpper(name[:1]) + name[1:]
 	}
 
