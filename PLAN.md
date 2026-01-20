@@ -76,11 +76,11 @@ crAIzy is a **tmux management tool for AI orchestration** that provides an easy-
    └─> Real-time updates as agents modify files
 
 9. Push changes
-   └─> Press designated key (TBD) to push to origin
+   └─> Press 'p' to push to origin
    └─> Changes from worktree → remote branch
 
 10. Open Pull Request
-    └─> Press designated key (TBD) to create PR
+    └─> Press 'r' to create PR
     └─> PR: agent-branch → main
     └─> Automated description generation
 

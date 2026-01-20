@@ -155,11 +155,11 @@ crAIzy provides a streamlined workflow for orchestrating AI agents to work on yo
    - Each agent works in its own branch via git worktree
 
 8. **Push changes:**
-   - Press the designated key (TBD) to push changes from the worktree
+   - Press `p` to push changes from the worktree
    - Changes are pushed to the origin repository on the agent's branch
 
 9. **Create a Pull Request:**
-   - Press the designated key (TBD) to open a PR
+   - Press `r` to open a PR
    - The PR is created from the agent's branch into the main branch
    - crAIzy handles the entire git workflow
 
