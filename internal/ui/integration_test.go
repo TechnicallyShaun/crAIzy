@@ -109,7 +109,7 @@ func TestDashboardLifecycle(t *testing.T) {
 	}
 
 	// Send Enter key to confirm
-	if err := tmuxMgr.SendKeys(sessionID, "Enter"); err != nil {
+	if err := tmuxMgr.SendKeysNoEnter(sessionID, "Enter"); err != nil {
 		t.Fatalf("Failed to send Enter key: %v", err)
 	}
 
@@ -135,7 +135,7 @@ func TestDashboardLifecycle(t *testing.T) {
 		t.Fatalf("Failed to send 'q' key: %v", err)
 	}
 
-	if err := tmuxMgr.SendKeys(sessionID, "Enter"); err != nil {
+	if err := tmuxMgr.SendKeysNoEnter(sessionID, "Enter"); err != nil {
 		t.Fatalf("Failed to send Enter key: %v", err)
 	}
 
@@ -225,7 +225,7 @@ func TestDashboardLifecycleWithListCommand(t *testing.T) {
 		t.Fatalf("Failed to send 'l' key: %v", err)
 	}
 
-	if err := tmuxMgr.SendKeys(sessionID, "Enter"); err != nil {
+	if err := tmuxMgr.SendKeysNoEnter(sessionID, "Enter"); err != nil {
 		t.Fatalf("Failed to send Enter key: %v", err)
 	}
 
@@ -246,7 +246,7 @@ func TestDashboardLifecycleWithListCommand(t *testing.T) {
 	// Clean up with 'q'
 	time.Sleep(2 * time.Second)
 	tmuxMgr.SendKeysLiteral(sessionID, "q")
-	tmuxMgr.SendKeys(sessionID, "Enter")
+	tmuxMgr.SendKeysNoEnter(sessionID, "Enter")
 	time.Sleep(500 * time.Millisecond)
 }
 

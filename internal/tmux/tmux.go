@@ -171,8 +171,8 @@ func GetTmuxVersion() (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
-// SendKeys sends keystrokes to a tmux session
-func (m *Manager) SendKeys(sessionID string, keys string) error {
+// SendKeysNoEnter sends keystrokes to a tmux session without appending Enter
+func (m *Manager) SendKeysNoEnter(sessionID string, keys string) error {
 	if !m.SessionExists(sessionID) {
 		return fmt.Errorf("session %s does not exist", sessionID)
 	}
