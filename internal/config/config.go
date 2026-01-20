@@ -11,20 +11,28 @@ import (
 const (
 	ConfigDir  = ".craizy"
 	ConfigFile = "config.yaml"
-	AIsFile    = "ais.yaml"
+	AIsFile    = "ais.yaml"    // Deprecated: Use AgentsFile instead
+	AgentsFile = "agents.yaml"
 )
 
 // Config represents the crAIzy configuration
 type Config struct {
 	ProjectName string   `yaml:"project_name"`
 	AIs         []AISpec `yaml:"ais,omitempty"`
+	Agents      []Agent  `yaml:"agents,omitempty"`
 }
 
-// AISpec defines an AI configuration
+// AISpec defines an AI configuration (deprecated, use Agent)
 type AISpec struct {
 	Name    string            `yaml:"name"`
 	Command string            `yaml:"command"`
 	Options map[string]string `yaml:"options,omitempty"`
+}
+
+// Agent defines a CLI-based AI agent
+type Agent struct {
+	Name    string `yaml:"name"`
+	Command string `yaml:"command"`
 }
 
 // InitProject creates a new crAIzy project
@@ -50,32 +58,25 @@ func InitProject(name string) error {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
 
-	// Create default AIs config
-	defaultAIs := []AISpec{
-		{
-			Name:    "GPT-4",
-			Command: "openai-cli chat --model gpt-4",
-			Options: map[string]string{
-				"api_key": "$OPENAI_API_KEY",
-			},
-		},
+	// Create default agents config (CLI-based)
+	defaultAgents := []Agent{
 		{
 			Name:    "Claude",
-			Command: "anthropic-cli chat --model claude-3-opus",
-			Options: map[string]string{
-				"api_key": "$ANTHROPIC_API_KEY",
-			},
+			Command: "claude --dangerously-skip-permissions",
 		},
 		{
-			Name:    "Local LLaMA",
-			Command: "ollama run llama2",
-			Options: map[string]string{},
+			Name:    "Copilot",
+			Command: "copilot --allow-all-tools",
+		},
+		{
+			Name:    "Aider",
+			Command: "aider",
 		},
 	}
 
-	aisPath := filepath.Join(craizyDir, AIsFile)
-	if err := saveAIs(aisPath, defaultAIs); err != nil {
-		return fmt.Errorf("failed to save AIs config: %w", err)
+	agentsPath := filepath.Join(craizyDir, AgentsFile)
+	if err := saveAgents(agentsPath, defaultAgents); err != nil {
+		return fmt.Errorf("failed to save agents config: %w", err)
 	}
 
 	return nil
@@ -100,13 +101,20 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
-	// Load AIs
+	// Load AIs (for backward compatibility)
 	aisPath := filepath.Join(ConfigDir, AIsFile)
 	ais, err := loadAIs(aisPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load AIs: %w", err)
+	if err == nil {
+		cfg.AIs = ais
 	}
-	cfg.AIs = ais
+
+	// Load Agents
+	agentsPath := filepath.Join(ConfigDir, AgentsFile)
+	agents, err := loadAgents(agentsPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load agents: %w", err)
+	}
+	cfg.Agents = agents
 
 	return &cfg, nil
 }
@@ -141,4 +149,97 @@ func loadAIs(path string) ([]AISpec, error) {
 	}
 
 	return result.AIs, nil
+}
+
+func saveAgents(path string, agents []Agent) error {
+	data, err := yaml.Marshal(map[string][]Agent{"agents": agents})
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0o600)
+}
+
+func loadAgents(path string) ([]Agent, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var result struct {
+		Agents []Agent `yaml:"agents"`
+	}
+	if err := yaml.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result.Agents, nil
+}
+
+// AddAgent adds a new agent to the configuration
+func AddAgent(name, command string) error {
+	if !IsInitialized() {
+		return fmt.Errorf("not in a crAIzy project")
+	}
+
+	agentsPath := filepath.Join(ConfigDir, AgentsFile)
+	agents, err := loadAgents(agentsPath)
+	if err != nil {
+		// If file doesn't exist, start with empty list
+		agents = []Agent{}
+	}
+
+	// Check if agent with this name already exists
+	for _, agent := range agents {
+		if agent.Name == name {
+			return fmt.Errorf("agent with name '%s' already exists", name)
+		}
+	}
+
+	// Add new agent
+	agents = append(agents, Agent{
+		Name:    name,
+		Command: command,
+	})
+
+	return saveAgents(agentsPath, agents)
+}
+
+// RemoveAgent removes an agent from the configuration
+func RemoveAgent(name string) error {
+	if !IsInitialized() {
+		return fmt.Errorf("not in a crAIzy project")
+	}
+
+	agentsPath := filepath.Join(ConfigDir, AgentsFile)
+	agents, err := loadAgents(agentsPath)
+	if err != nil {
+		return err
+	}
+
+	// Find and remove agent
+	found := false
+	newAgents := make([]Agent, 0)
+	for _, agent := range agents {
+		if agent.Name != name {
+			newAgents = append(newAgents, agent)
+		} else {
+			found = true
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("agent with name '%s' not found", name)
+	}
+
+	return saveAgents(agentsPath, newAgents)
+}
+
+// ListAgents returns all configured agents
+func ListAgents() ([]Agent, error) {
+	if !IsInitialized() {
+		return nil, fmt.Errorf("not in a crAIzy project")
+	}
+
+	agentsPath := filepath.Join(ConfigDir, AgentsFile)
+	return loadAgents(agentsPath)
 }

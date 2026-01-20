@@ -42,10 +42,10 @@ func TestInitProject(t *testing.T) {
 		t.Errorf("config.yaml not created")
 	}
 
-	// Verify AIs file was created
-	aisFile := filepath.Join(craizyDir, AIsFile)
-	if _, err := os.Stat(aisFile); os.IsNotExist(err) {
-		t.Errorf("ais.yaml not created")
+	// Verify agents file was created
+	agentsFile := filepath.Join(craizyDir, AgentsFile)
+	if _, err := os.Stat(agentsFile); os.IsNotExist(err) {
+		t.Errorf("agents.yaml not created")
 	}
 }
 
@@ -118,23 +118,23 @@ func TestLoad(t *testing.T) {
 		t.Errorf("Expected project name %s, got %s", projectName, cfg.ProjectName)
 	}
 
-	// Verify AIs were loaded
-	if len(cfg.AIs) == 0 {
-		t.Errorf("Expected AIs to be loaded")
+	// Verify Agents were loaded
+	if len(cfg.Agents) == 0 {
+		t.Errorf("Expected Agents to be loaded")
 	}
 
-	// Verify default AIs
-	aiNames := []string{"GPT-4", "Claude", "Local LLaMA"}
-	if len(cfg.AIs) != len(aiNames) {
-		t.Errorf("Expected %d default AIs, got %d", len(aiNames), len(cfg.AIs))
+	// Verify default Agents
+	agentNames := []string{"Claude", "Copilot", "Aider"}
+	if len(cfg.Agents) != len(agentNames) {
+		t.Errorf("Expected %d default Agents, got %d", len(agentNames), len(cfg.Agents))
 	}
 
-	for i, expectedName := range aiNames {
-		if i >= len(cfg.AIs) {
+	for i, expectedName := range agentNames {
+		if i >= len(cfg.Agents) {
 			break
 		}
-		if cfg.AIs[i].Name != expectedName {
-			t.Errorf("Expected AI name %s, got %s", expectedName, cfg.AIs[i].Name)
+		if cfg.Agents[i].Name != expectedName {
+			t.Errorf("Expected Agent name %s, got %s", expectedName, cfg.Agents[i].Name)
 		}
 	}
 }
