@@ -88,6 +88,15 @@ func (m *Manager) CreateWindow(name, command string) (*Session, error) {
 	return session, nil
 }
 
+// SendKeys sends keys to a tmux window or pane
+func (m *Manager) SendKeys(target, keys string) error {
+	cmd := exec.Command("tmux", "send-keys", "-t", target, keys, "Enter")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to send keys: %w", err)
+	}
+	return nil
+}
+
 // SessionExists checks if a tmux session exists
 func (m *Manager) SessionExists(name string) bool {
 	cmd := exec.Command("tmux", "has-session", "-t", name)
