@@ -18,7 +18,8 @@ linters-settings:
   golint:
     min-confidence: 0
   govet:
-    check-shadowing: true
+    enable:
+      - shadow
   lll:
     line-length: 140
   maligned:
@@ -31,10 +32,10 @@ linters:
     - typecheck
   enable:
     - bodyclose
+    - copyloopvar
     - dogsled
     - dupl
     - errcheck
-    - exportloopref
     - gochecknoinits
     - goconst
     - gocritic
