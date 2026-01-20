@@ -124,7 +124,11 @@ func handleAgentAdd(command string) {
 		os.Exit(1)
 	}
 
-	name := strings.Title(parts[0])
+	// Capitalize the first letter of the first word
+	name := parts[0]
+	if len(name) > 0 {
+		name = strings.ToUpper(name[:1]) + name[1:]
+	}
 
 	if err := config.AddAgent(name, command); err != nil {
 		fmt.Printf("Error adding agent: %v\n", err)

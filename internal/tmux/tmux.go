@@ -2,6 +2,7 @@ package tmux
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -58,11 +59,16 @@ func (m *Manager) CreateSession(name, command string) (*Session, error) {
 func (m *Manager) CreateWindow(name, command string) (*Session, error) {
 	windowName := fmt.Sprintf("%s-%s", m.sessionPrefix, name)
 
-	// Create new window in current session or create new session if not in tmux
+	// Check if we're in a tmux session
+	if os.Getenv("TMUX") == "" {
+		// Not in tmux, create a new session instead
+		return m.CreateSession(name, command)
+	}
+
+	// Create new window in current session
 	cmd := exec.Command("tmux", "new-window", "-n", windowName)
 	if err := cmd.Run(); err != nil {
-		// If not in tmux, create a new session instead
-		return m.CreateSession(name, command)
+		return nil, fmt.Errorf("failed to create window: %w", err)
 	}
 
 	// Send the command keys to the new window
