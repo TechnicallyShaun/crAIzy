@@ -118,7 +118,10 @@ func TestSpawnMultipleAIs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("First SpawnAI failed: %v", err)
 	}
-	if ai1 != nil && ai1.Session != nil {
+	if ai1 == nil {
+		t.Fatal("ai1 should not be nil")
+	}
+	if ai1.Session != nil {
 		defer tmuxMgr.KillSession(ai1.Session.ID)
 	}
 
@@ -126,7 +129,10 @@ func TestSpawnMultipleAIs(t *testing.T) {
 	if err2 != nil {
 		t.Fatalf("Second SpawnAI failed: %v", err2)
 	}
-	if ai2 != nil && ai2.Session != nil {
+	if ai2 == nil {
+		t.Fatal("ai2 should not be nil")
+	}
+	if ai2.Session != nil {
 		defer tmuxMgr.KillSession(ai2.Session.ID)
 	}
 
