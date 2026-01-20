@@ -10,6 +10,12 @@ import (
 	"github.com/TechnicallyShaun/crAIzy/internal/tmux"
 )
 
+// shellEscape escapes a string for safe use in a bash single-quoted string
+// by replacing single quotes with '\''
+func shellEscape(s string) string {
+	return strings.ReplaceAll(s, "'", "'\"'\"'")
+}
+
 // Dashboard represents the main UI dashboard
 type Dashboard struct {
 	config      *config.Config
@@ -133,11 +139,12 @@ func (d *Dashboard) generateDashboardScript() string {
 	sb.WriteString("    read -p 'Enter agent number: ' agent_num\n")
 	sb.WriteString("    case $agent_num in\n")
 	for i, agent := range d.config.Agents {
-		// Escape any single quotes in the command
-		escapedCmd := strings.ReplaceAll(agent.Command, "'", "'\"'\"'")
-		windowName := fmt.Sprintf("craizy-%s", agent.Name)
+		// Escape single quotes and other shell metacharacters for safe use in bash
+		escapedCmd := shellEscape(agent.Command)
+		escapedName := shellEscape(agent.Name)
+		windowName := fmt.Sprintf("craizy-%s", escapedName)
 		sb.WriteString(fmt.Sprintf("      %d)\n", i+1))
-		sb.WriteString(fmt.Sprintf("        echo 'Starting %s...'\n", agent.Name))
+		sb.WriteString(fmt.Sprintf("        echo 'Starting %s...'\n", escapedName))
 		sb.WriteString(fmt.Sprintf("        tmux new-window -n '%s' '%s'\n", windowName, escapedCmd))
 		sb.WriteString("        sleep 1\n")
 		sb.WriteString("        ;;\n")
@@ -156,7 +163,11 @@ func (d *Dashboard) generateDashboardScript() string {
 	sb.WriteString("    tmux list-windows -F '#I: #W'\n")
 	sb.WriteString("    echo ''\n")
 	sb.WriteString("    read -p 'Enter window ID to attach: ' window_id\n")
-	sb.WriteString("    if tmux select-window -t :$window_id 2>/dev/null; then\n")
+	// Validate window_id contains only digits to prevent command injection
+	sb.WriteString("    if [[ ! $window_id =~ ^[0-9]+$ ]]; then\n")
+	sb.WriteString("      echo \"Invalid window ID: must be a number\"\n")
+	sb.WriteString("      sleep 2\n")
+	sb.WriteString("    elif tmux select-window -t :$window_id 2>/dev/null; then\n")
 	sb.WriteString("      echo \"Switched to window $window_id\"\n")
 	sb.WriteString("      sleep 1\n")
 	sb.WriteString("    else\n")
@@ -172,7 +183,11 @@ func (d *Dashboard) generateDashboardScript() string {
 	sb.WriteString("    tmux list-windows -F '#I: #W'\n")
 	sb.WriteString("    echo ''\n")
 	sb.WriteString("    read -p 'Enter window ID to kill: ' window_id\n")
-	sb.WriteString("    if tmux kill-window -t :$window_id 2>/dev/null; then\n")
+	// Validate window_id contains only digits to prevent command injection
+	sb.WriteString("    if [[ ! $window_id =~ ^[0-9]+$ ]]; then\n")
+	sb.WriteString("      echo \"Invalid window ID: must be a number\"\n")
+	sb.WriteString("      sleep 2\n")
+	sb.WriteString("    elif tmux kill-window -t :$window_id 2>/dev/null; then\n")
 	sb.WriteString("      echo \"Killed window $window_id\"\n")
 	sb.WriteString("      sleep 1\n")
 	sb.WriteString("    else\n")
