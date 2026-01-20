@@ -121,7 +121,7 @@ func (d *Dashboard) generateDashboardScript() string {
 	sb.WriteString("echo 'Commands: [n]ew AI, [a]ttach <id>, [k]ill <id>, [l]ist, [q]uit'\n")
 	sb.WriteString("read -p '> ' cmd args\n")
 	sb.WriteString("case $cmd in\n")
-	
+
 	// 'n' command: New AI - show agent menu and spawn selected agent
 	sb.WriteString("  n)\n")
 	sb.WriteString("    echo ''\n")
@@ -148,7 +148,7 @@ func (d *Dashboard) generateDashboardScript() string {
 	sb.WriteString("        ;;\n")
 	sb.WriteString("    esac\n")
 	sb.WriteString("    ;;\n")
-	
+
 	// 'a' command: Attach - list windows and attach to selected one
 	sb.WriteString("  a)\n")
 	sb.WriteString("    echo ''\n")
@@ -164,7 +164,7 @@ func (d *Dashboard) generateDashboardScript() string {
 	sb.WriteString("      sleep 2\n")
 	sb.WriteString("    fi\n")
 	sb.WriteString("    ;;\n")
-	
+
 	// 'k' command: Kill - list windows and kill selected one
 	sb.WriteString("  k)\n")
 	sb.WriteString("    echo ''\n")
@@ -180,7 +180,7 @@ func (d *Dashboard) generateDashboardScript() string {
 	sb.WriteString("      sleep 2\n")
 	sb.WriteString("    fi\n")
 	sb.WriteString("    ;;\n")
-	
+
 	sb.WriteString("  l) echo 'Listing AIs...'; sleep 2; ;;\n")
 	sb.WriteString("  q) echo 'Goodbye!'; exit 0; ;;\n")
 	sb.WriteString("  *) echo 'Unknown command'; sleep 2; ;;\n")
