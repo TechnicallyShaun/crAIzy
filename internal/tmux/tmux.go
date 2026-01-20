@@ -170,3 +170,31 @@ func GetTmuxVersion() (string, error) {
 	}
 	return strings.TrimSpace(string(output)), nil
 }
+
+// SendKeys sends keystrokes to a tmux session
+func (m *Manager) SendKeys(sessionID string, keys string) error {
+	if !m.SessionExists(sessionID) {
+		return fmt.Errorf("session %s does not exist", sessionID)
+	}
+
+	cmd := exec.Command("tmux", "send-keys", "-t", sessionID, keys)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to send keys: %w", err)
+	}
+
+	return nil
+}
+
+// SendKeysLiteral sends literal keys to a tmux session (without Enter)
+func (m *Manager) SendKeysLiteral(sessionID string, keys string) error {
+	if !m.SessionExists(sessionID) {
+		return fmt.Errorf("session %s does not exist", sessionID)
+	}
+
+	cmd := exec.Command("tmux", "send-keys", "-t", sessionID, "-l", keys)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to send keys: %w", err)
+	}
+
+	return nil
+}
