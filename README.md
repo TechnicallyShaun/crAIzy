@@ -9,7 +9,7 @@
 </h1>
 
 <p align="center">
-  <strong>AI-powered terminal multiplexer for orchestrating intelligent agents</strong>
+  <strong>tmux management tool for orchestrating AI agents</strong>
 </p>
 
 <p align="center">
@@ -17,6 +17,7 @@
   <a href="#installation">Installation</a> •
   <a href="#usage">Usage</a> •
   <a href="#commands">Commands</a> •
+  <a href="PLAN.md">Development Plan</a> •
   <a href="VISION.md">Vision</a>
 </p>
 
@@ -24,9 +25,9 @@
 
 ## What is crAIzy?
 
-**crAIzy** is a CLI tool that combines the power of tmux with AI agents, giving you a unified interface to spawn, manage, and orchestrate multiple AI sessions from your terminal.
+**crAIzy** is a tmux management tool that allows the orchestration of AI agents. It provides an easy-to-use TUI (Terminal User Interface) for orchestrating bash/CLI tools, primarily designed for AI agent management.
 
-Think of it as a window manager for AI—spin up agents, switch between them, and let them work on different parts of your project simultaneously.
+Think of it as a window manager for AI—spin up agents in parallel using git worktrees, switch between them, manage code changes, and let them collaborate on different parts of your project simultaneously. crAIzy handles the entire workflow from agent spawning to PR creation.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -50,9 +51,11 @@ Think of it as a window manager for AI—spin up agents, switch between them, an
 - **🪟 Multi-Agent Management** — Run multiple AI agents in parallel tmux sessions
 - **⚡ Quick Spawn** — Fire up AI agents with a single command
 - **🔄 Session Switching** — Seamlessly jump between active AI sessions
-- **📊 Status Dashboard** — Real-time overview of all running agents
-- **🎯 Task Assignment** — Direct agents to specific tasks or files
-- **🔗 Agent Coordination** — Let agents collaborate on complex tasks
+- **📊 Status Dashboard** — Real-time overview of all running agents with TUI interface
+- **🌲 Git Worktree Support** — Agents work in isolated git worktrees for parallel development
+- **🔍 Change Detection** — Automatically detect uncommitted changes in worktrees
+- **🚀 Automated Workflow** — Push changes and open PRs directly from the interface
+- **🔄 Auto-Sync** — Periodically fetch and pull to keep worktrees up-to-date
 
 ## Installation
 
@@ -112,6 +115,59 @@ cd my-project
 craizy start
 ```
 
+### Complete User Journey
+
+crAIzy provides a streamlined workflow for orchestrating AI agents to work on your code:
+
+1. **Install crAIzy** (see [Installation](#installation) above)
+
+2. **Initialize a project:**
+   ```bash
+   craizy init myproject
+   ```
+   This creates a project directory with `.craizy/` configuration.
+
+3. **Navigate to your project:**
+   ```bash
+   cd myproject
+   ```
+
+4. **Launch the dashboard:**
+   ```bash
+   craizy start
+   ```
+   This starts the interactive TUI dashboard powered by tmux.
+
+5. **Spawn a new AI agent:**
+   - Press `n` in the dashboard
+   - A modal appears asking which AI to launch
+   - Select your desired AI from the configured options
+
+6. **Interact with the AI:**
+   - Press `Enter` to attach to the AI session
+   - The AI agent will work in an isolated git worktree
+   - Ask the AI to make changes to your source code
+   - The AI can clone repos, make edits, and work in parallel with other agents
+
+7. **Monitor git changes:**
+   - crAIzy automatically detects uncommitted changes in each worktree
+   - Visual indicators show which agents have pending changes
+   - Each agent works in its own branch via git worktree
+
+8. **Push changes:**
+   - Press `p` to push changes from the worktree
+   - Changes are pushed to the origin repository on the agent's branch
+
+9. **Create a Pull Request:**
+   - Press `r` to open a PR
+   - The PR is created from the agent's branch into the main branch
+   - crAIzy handles the entire git workflow
+
+10. **Stay synchronized:**
+    - crAIzy periodically fetches and pulls new changes from origin
+    - New worktrees are always created from an up-to-date state
+    - This ensures all agents work with the latest code
+
 ### Initialize a Project
 
 Create a new crAIzy project in a directory:
@@ -134,10 +190,13 @@ From within a crAIzy project directory:
 craizy start
 ```
 
-This launches an interactive tmux-based dashboard where you can:
-- Press **N** to spawn a new AI instance
-- Use number keys to select and attach to AI sessions
-- View AI output in the preview window
+This launches an interactive tmux-based TUI dashboard where you can:
+- Press **N** to spawn a new AI instance (opens modal to select AI)
+- Press **Enter** to attach to and interact with an AI session
+- Use number keys to select specific AI sessions
+- View AI output and git status in real-time
+- Monitor uncommitted changes across all worktrees
+- Push changes and create PRs with keyboard shortcuts
 - Manage multiple AI sessions simultaneously
 
 ### Configuration

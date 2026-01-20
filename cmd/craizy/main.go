@@ -168,11 +168,11 @@ func handleAgentRemove(name string) {
 }
 
 func printUsage() {
-	fmt.Println("crAIzy - AI-powered terminal multiplexer")
+	fmt.Println("crAIzy - tmux management tool for AI orchestration")
 	fmt.Println()
 	fmt.Println("Usage:")
 	fmt.Println("  craizy init <name>              Initialize a new crAIzy project")
-	fmt.Println("  craizy start                    Start the dashboard")
+	fmt.Println("  craizy start                    Start the TUI dashboard")
 	fmt.Println("  craizy agent add <command>      Add a new agent")
 	fmt.Println("  craizy agent list               List all agents")
 	fmt.Println("  craizy agent remove <name>      Remove an agent")
