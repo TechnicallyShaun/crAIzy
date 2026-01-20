@@ -60,8 +60,9 @@ func (m *Manager) CreateWindow(name, command string) (*Session, error) {
 	windowName := fmt.Sprintf("%s-%s", m.sessionPrefix, name)
 
 	// Check if we're in a tmux session
+	// If not in tmux (TMUX env var not set), fall back to creating a new session
+	// This ensures the command can still be executed in an isolated tmux session
 	if os.Getenv("TMUX") == "" {
-		// Not in tmux, create a new session instead
 		return m.CreateSession(name, command)
 	}
 

@@ -141,7 +141,7 @@ func padRight(s string, length int) string {
 func (d *Dashboard) SpawnAI(agent config.Agent) (*AIInstance, error) {
 	instanceName := fmt.Sprintf("%s-%d", agent.Name, len(d.aiInstances)+1)
 
-	// Use CreateWindow to create a new tmux window and send the CLI command
+	// CreateWindow creates a new tmux window and sends the CLI command to it
 	session, err := d.tmuxMgr.CreateWindow(instanceName, agent.Command)
 	if err != nil {
 		return nil, err

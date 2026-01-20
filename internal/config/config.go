@@ -11,7 +11,7 @@ import (
 const (
 	ConfigDir  = ".craizy"
 	ConfigFile = "config.yaml"
-	AIsFile    = "ais.yaml"
+	AIsFile    = "ais.yaml"    // Deprecated: Use AgentsFile instead
 	AgentsFile = "agents.yaml"
 )
 
