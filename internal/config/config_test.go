@@ -6,10 +6,12 @@ import (
 	"testing"
 )
 
+const testProjectName = "test-project"
+
 func TestInitProject(t *testing.T) {
 	// Create temp directory for test
 	tmpDir := t.TempDir()
-	projectName := "test-project"
+	projectName := testProjectName
 	projectPath := filepath.Join(tmpDir, projectName)
 
 	// Change to temp directory
@@ -49,14 +51,14 @@ func TestInitProject(t *testing.T) {
 
 func TestInitProjectDuplicateDirectory(t *testing.T) {
 	tmpDir := t.TempDir()
-	projectName := "test-project"
+	projectName := testProjectName
 
 	originalDir, _ := os.Getwd()
 	defer os.Chdir(originalDir)
 	os.Chdir(tmpDir)
 
 	// Create directory first
-	os.MkdirAll(projectName, 0755)
+	os.MkdirAll(projectName, 0o755)
 
 	// Should succeed even if directory exists
 	err := InitProject(projectName)
@@ -67,7 +69,7 @@ func TestInitProjectDuplicateDirectory(t *testing.T) {
 
 func TestIsInitialized(t *testing.T) {
 	tmpDir := t.TempDir()
-	projectName := "test-project"
+	projectName := testProjectName
 
 	originalDir, _ := os.Getwd()
 	defer os.Chdir(originalDir)
@@ -90,7 +92,7 @@ func TestIsInitialized(t *testing.T) {
 
 func TestLoad(t *testing.T) {
 	tmpDir := t.TempDir()
-	projectName := "test-project"
+	projectName := testProjectName
 
 	originalDir, _ := os.Getwd()
 	defer os.Chdir(originalDir)
@@ -153,7 +155,7 @@ func TestLoadNonExistent(t *testing.T) {
 
 func TestAISpec(t *testing.T) {
 	tmpDir := t.TempDir()
-	projectName := "test-project"
+	projectName := testProjectName
 
 	originalDir, _ := os.Getwd()
 	defer os.Chdir(originalDir)

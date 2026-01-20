@@ -16,7 +16,6 @@ type Dashboard struct {
 	tmuxMgr     *tmux.Manager
 	aiInstances []*AIInstance
 	selectedTab int
-	showAIModal bool
 }
 
 // AIInstance represents a running AI instance

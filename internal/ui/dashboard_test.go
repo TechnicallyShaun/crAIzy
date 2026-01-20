@@ -118,13 +118,23 @@ func TestSpawnMultipleAIs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("First SpawnAI failed: %v", err)
 	}
-	defer tmuxMgr.KillSession(ai1.Session.ID)
+	if ai1 == nil {
+		t.Fatal("ai1 should not be nil")
+	}
+	if ai1.Session != nil {
+		defer tmuxMgr.KillSession(ai1.Session.ID)
+	}
 
 	ai2, err := dashboard.SpawnAI(aiSpec2)
 	if err != nil {
 		t.Fatalf("Second SpawnAI failed: %v", err)
 	}
-	defer tmuxMgr.KillSession(ai2.Session.ID)
+	if ai2 == nil {
+		t.Fatal("ai2 should not be nil")
+	}
+	if ai2.Session != nil {
+		defer tmuxMgr.KillSession(ai2.Session.ID)
+	}
 
 	if ai1.ID != 1 {
 		t.Errorf("Expected first AI ID 1, got %d", ai1.ID)
@@ -158,6 +168,7 @@ func TestGetAIInstance(t *testing.T) {
 	ai := dashboard.GetAIInstance(1)
 	if ai == nil {
 		t.Error("GetAIInstance should return AI for valid ID")
+		return
 	}
 	if ai.ID != 1 {
 		t.Errorf("Expected AI ID 1, got %d", ai.ID)
@@ -215,7 +226,7 @@ func TestGenerateDashboardScript(t *testing.T) {
 	}
 
 	// Check for project name
-	if len(dashboard.config.ProjectName) > 0 && dashboard.config.ProjectName == "test-project" {
+	if dashboard.config.ProjectName != "" && dashboard.config.ProjectName == "test-project" {
 		// Script should reference the project somehow
 		if len(script) < 100 {
 			t.Error("Script seems too short")

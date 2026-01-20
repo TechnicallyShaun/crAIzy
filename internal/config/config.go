@@ -30,13 +30,13 @@ type AISpec struct {
 // InitProject creates a new crAIzy project
 func InitProject(name string) error {
 	// Create project directory
-	if err := os.MkdirAll(name, 0755); err != nil {
+	if err := os.MkdirAll(name, 0o755); err != nil {
 		return fmt.Errorf("failed to create project directory: %w", err)
 	}
 
 	// Create .craizy directory
 	craizyDir := filepath.Join(name, ConfigDir)
-	if err := os.MkdirAll(craizyDir, 0755); err != nil {
+	if err := os.MkdirAll(craizyDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create .craizy directory: %w", err)
 	}
 
@@ -96,7 +96,7 @@ func Load() (*Config, error) {
 	}
 
 	var cfg Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
+	if err = yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
@@ -116,7 +116,7 @@ func saveConfig(path string, cfg *Config) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0o600)
 }
 
 func saveAIs(path string, ais []AISpec) error {
@@ -124,7 +124,7 @@ func saveAIs(path string, ais []AISpec) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0o600)
 }
 
 func loadAIs(path string) ([]AISpec, error) {
