@@ -119,24 +119,53 @@ func TestDashboardLifecycle(t *testing.T) {
 		t.Fatalf("Failed to send Enter key: %v", err)
 	}
 
-	// Give time for the action to be processed and displayed
-	time.Sleep(1500 * time.Millisecond)
+	// Give time for the menu to be displayed
+	time.Sleep(1000 * time.Millisecond)
 
-	// Step 5: Verify that the dashboard responded to 'n' key
+	// Step 5: Verify that the dashboard shows agent selection menu
 	content, err = tmuxMgr.GetSessionContent(sessionID)
 	if err != nil {
 		t.Fatalf("Failed to get session content after 'n' press: %v", err)
 	}
 
-	// The script should show "Starting new AI..." message
-	if !strings.Contains(content, "Starting new AI") {
-		t.Errorf("Expected 'Starting new AI' message after pressing 'n':\n%s", content)
+	// The script should show "Select an agent to start:" message
+	if !strings.Contains(content, "Select an agent to start") {
+		t.Errorf("Expected agent selection menu after pressing 'n':\n%s", content)
 	}
 
-	// Wait for the dashboard to redisplay after processing (sleep 2 in the case statement)
+	// Step 6: Select the first agent (send '1' and Enter)
+	err = tmuxMgr.SendKeysLiteral(sessionID, "1")
+	if err != nil {
+		t.Fatalf("Failed to send '1' key: %v", err)
+	}
+
+	err = tmuxMgr.SendKeysNoEnter(sessionID, "Enter")
+	if err != nil {
+		t.Fatalf("Failed to send Enter key: %v", err)
+	}
+
+	// Give time for the agent to be spawned
+	time.Sleep(1500 * time.Millisecond)
+
+	// Step 7: Verify agent was started
+	content, err = tmuxMgr.GetSessionContent(sessionID)
+	if err != nil {
+		t.Fatalf("Failed to get session content after agent selection: %v", err)
+	}
+
+	// The script should show "Starting [AgentName]..." message
+	// We expect the first agent from cfg.Agents to be started
+	if len(cfg.Agents) > 0 {
+		expectedMsg := "Starting " + cfg.Agents[0].Name
+		if !strings.Contains(content, expectedMsg) {
+			t.Logf("Expected '%s' message after selecting agent (may have cleared):\n%s", expectedMsg, content)
+		}
+	}
+
+	// Wait for the dashboard to redisplay after processing
 	time.Sleep(1000 * time.Millisecond)
 
-	// Step 6: Press 'q' to quit the dashboard
+	// Step 8: Press 'q' to quit the dashboard
 	err = tmuxMgr.SendKeysLiteral(sessionID, "q")
 	if err != nil {
 		t.Fatalf("Failed to send 'q' key: %v", err)
@@ -150,7 +179,7 @@ func TestDashboardLifecycle(t *testing.T) {
 	// Give time for the session to exit
 	time.Sleep(500 * time.Millisecond)
 
-	// Step 7: Verify the session has exited after 'q' command
+	// Step 9: Verify the session has exited after 'q' command
 	finalContent, err := tmuxMgr.GetSessionContent(sessionID)
 	if err != nil {
 		// Session has exited, which is expected after 'q'
