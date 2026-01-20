@@ -9,7 +9,7 @@
 </h1>
 
 <p align="center">
-  <strong>AI-powered terminal multiplexer for orchestrating intelligent agents</strong>
+  <strong>tmux management tool for orchestrating AI agents</strong>
 </p>
 
 <p align="center">
