@@ -80,6 +80,9 @@ func (d *Dashboard) startInWindow() error {
 func (d *Dashboard) generateDashboardScript() string {
 	var sb strings.Builder
 
+	// Wrap everything in a loop
+	sb.WriteString("while true; do\n")
+
 	// Clear screen
 	sb.WriteString("clear\n")
 
@@ -118,14 +121,16 @@ func (d *Dashboard) generateDashboardScript() string {
 	sb.WriteString("echo 'Commands: [n]ew AI, [a]ttach <id>, [k]ill <id>, [l]ist, [q]uit'\n")
 	sb.WriteString("read -p '> ' cmd args\n")
 	sb.WriteString("case $cmd in\n")
-	sb.WriteString("  n) echo 'Starting new AI...'; ;;\n")
-	sb.WriteString("  a) echo 'Attaching to AI...'; ;;\n")
-	sb.WriteString("  k) echo 'Killing AI...'; ;;\n")
-	sb.WriteString("  l) echo 'Listing AIs...'; ;;\n")
-	sb.WriteString("  q) exit 0; ;;\n")
-	sb.WriteString("  *) echo 'Unknown command'; ;;\n")
+	sb.WriteString("  n) echo 'Starting new AI...'; sleep 2; ;;\n")
+	sb.WriteString("  a) echo 'Attaching to AI...'; sleep 2; ;;\n")
+	sb.WriteString("  k) echo 'Killing AI...'; sleep 2; ;;\n")
+	sb.WriteString("  l) echo 'Listing AIs...'; sleep 2; ;;\n")
+	sb.WriteString("  q) echo 'Goodbye!'; exit 0; ;;\n")
+	sb.WriteString("  *) echo 'Unknown command'; sleep 2; ;;\n")
 	sb.WriteString("esac\n")
-	sb.WriteString("sleep 2\n")
+
+	// Close the loop
+	sb.WriteString("done\n")
 
 	return sb.String()
 }
@@ -162,4 +167,23 @@ func (d *Dashboard) GetAIInstance(id int) *AIInstance {
 		return nil
 	}
 	return d.aiInstances[id-1]
+}
+
+// StartDetached starts the dashboard in a detached tmux session for testing
+func (d *Dashboard) StartDetached(sessionName string) (string, error) {
+	// Check if tmux is available
+	if !tmux.IsTmuxAvailable() {
+		return "", fmt.Errorf("tmux is not installed or not in PATH")
+	}
+
+	// Create a bash script for the dashboard
+	script := d.generateDashboardScript()
+
+	// Create detached session and run dashboard
+	cmd := exec.Command("tmux", "new-session", "-d", "-s", sessionName, "bash", "-c", script)
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("failed to start detached dashboard: %w", err)
+	}
+
+	return sessionName, nil
 }
