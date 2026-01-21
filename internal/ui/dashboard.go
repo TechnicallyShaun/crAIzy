@@ -10,6 +10,12 @@ import (
 	"github.com/TechnicallyShaun/crAIzy/internal/tmux"
 )
 
+// shellEscape escapes a string for safe use in a bash single-quoted string
+// by replacing single quotes with '\”
+func shellEscape(s string) string {
+	return strings.ReplaceAll(s, "'", "'\"'\"'")
+}
+
 // Dashboard represents the main UI dashboard
 type Dashboard struct {
 	config      *config.Config
@@ -121,9 +127,75 @@ func (d *Dashboard) generateDashboardScript() string {
 	sb.WriteString("echo 'Commands: [n]ew AI, [a]ttach <id>, [k]ill <id>, [l]ist, [q]uit'\n")
 	sb.WriteString("read -p '> ' cmd args\n")
 	sb.WriteString("case $cmd in\n")
-	sb.WriteString("  n) echo 'Starting new AI...'; sleep 2; ;;\n")
-	sb.WriteString("  a) echo 'Attaching to AI...'; sleep 2; ;;\n")
-	sb.WriteString("  k) echo 'Killing AI...'; sleep 2; ;;\n")
+
+	// 'n' command: New AI - show agent menu and spawn selected agent
+	sb.WriteString("  n)\n")
+	sb.WriteString("    echo ''\n")
+	sb.WriteString("    echo 'Select an agent to start:'\n")
+	for i, agent := range d.config.Agents {
+		sb.WriteString(fmt.Sprintf("    echo '  %d. %s - %s'\n", i+1, agent.Name, agent.Command))
+	}
+	sb.WriteString("    echo ''\n")
+	sb.WriteString("    read -p 'Enter agent number: ' agent_num\n")
+	sb.WriteString("    case $agent_num in\n")
+	for i, agent := range d.config.Agents {
+		// Escape single quotes and other shell metacharacters for safe use in bash
+		escapedCmd := shellEscape(agent.Command)
+		escapedName := shellEscape(agent.Name)
+		windowName := fmt.Sprintf("craizy-%s", escapedName)
+		sb.WriteString(fmt.Sprintf("      %d)\n", i+1))
+		sb.WriteString(fmt.Sprintf("        echo 'Starting %s...'\n", escapedName))
+		sb.WriteString(fmt.Sprintf("        tmux new-window -n '%s' '%s'\n", windowName, escapedCmd))
+		sb.WriteString("        sleep 1\n")
+		sb.WriteString("        ;;\n")
+	}
+	sb.WriteString("      *)\n")
+	sb.WriteString("        echo 'Invalid selection'\n")
+	sb.WriteString("        sleep 2\n")
+	sb.WriteString("        ;;\n")
+	sb.WriteString("    esac\n")
+	sb.WriteString("    ;;\n")
+
+	// 'a' command: Attach - list windows and attach to selected one
+	sb.WriteString("  a)\n")
+	sb.WriteString("    echo ''\n")
+	sb.WriteString("    echo 'Available windows:'\n")
+	sb.WriteString("    tmux list-windows -F '#I: #W'\n")
+	sb.WriteString("    echo ''\n")
+	sb.WriteString("    read -p 'Enter window ID to attach: ' window_id\n")
+	// Validate window_id contains only digits to prevent command injection
+	sb.WriteString("    if [[ ! $window_id =~ ^[0-9]+$ ]]; then\n")
+	sb.WriteString("      echo \"Invalid window ID: must be a number\"\n")
+	sb.WriteString("      sleep 2\n")
+	sb.WriteString("    elif tmux select-window -t :$window_id 2>/dev/null; then\n")
+	sb.WriteString("      echo \"Switched to window $window_id\"\n")
+	sb.WriteString("      sleep 1\n")
+	sb.WriteString("    else\n")
+	sb.WriteString("      echo \"Failed to switch to window $window_id\"\n")
+	sb.WriteString("      sleep 2\n")
+	sb.WriteString("    fi\n")
+	sb.WriteString("    ;;\n")
+
+	// 'k' command: Kill - list windows and kill selected one
+	sb.WriteString("  k)\n")
+	sb.WriteString("    echo ''\n")
+	sb.WriteString("    echo 'Available windows:'\n")
+	sb.WriteString("    tmux list-windows -F '#I: #W'\n")
+	sb.WriteString("    echo ''\n")
+	sb.WriteString("    read -p 'Enter window ID to kill: ' window_id\n")
+	// Validate window_id contains only digits to prevent command injection
+	sb.WriteString("    if [[ ! $window_id =~ ^[0-9]+$ ]]; then\n")
+	sb.WriteString("      echo \"Invalid window ID: must be a number\"\n")
+	sb.WriteString("      sleep 2\n")
+	sb.WriteString("    elif tmux kill-window -t :$window_id 2>/dev/null; then\n")
+	sb.WriteString("      echo \"Killed window $window_id\"\n")
+	sb.WriteString("      sleep 1\n")
+	sb.WriteString("    else\n")
+	sb.WriteString("      echo \"Failed to kill window $window_id\"\n")
+	sb.WriteString("      sleep 2\n")
+	sb.WriteString("    fi\n")
+	sb.WriteString("    ;;\n")
+
 	sb.WriteString("  l) echo 'Listing AIs...'; sleep 2; ;;\n")
 	sb.WriteString("  q) echo 'Goodbye!'; exit 0; ;;\n")
 	sb.WriteString("  *) echo 'Unknown command'; sleep 2; ;;\n")
