@@ -220,6 +220,7 @@ func (m *Manager) CapturePane(target string, lines int) (string, error) {
 	}
 
 	// Use capture-pane with -p to print to stdout and -S to specify start line
+	// #nosec G204 - target is validated by SessionExists above
 	cmd := exec.Command("tmux", "capture-pane", "-t", target, "-p", "-S", fmt.Sprintf("-%d", lines))
 	output, err := cmd.Output()
 	if err != nil {

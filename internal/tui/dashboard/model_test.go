@@ -9,6 +9,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+const testLogOutput = "Output Log Line 1"
+
 // MockSessionManager implements SessionManager for testing
 type MockSessionManager struct {
 	sessions    map[string]*tmux.Session
@@ -106,7 +108,7 @@ func TestUpdate_Resize(t *testing.T) {
 
 	// Check if view renders without error after resize
 	view := m.View()
-	if len(view) == 0 {
+	if view == "" {
 		t.Error("View returned empty string after resize")
 	}
 }
@@ -117,7 +119,7 @@ func TestUpdate_PreviewLoop(t *testing.T) {
 	}
 	mockTmux := NewMockSessionManager()
 	mockTmux.CreateSession("Claude", "claude")
-	mockTmux.logs["craizy-Claude"] = "Output Log Line 1"
+	mockTmux.logs["craizy-Claude"] = testLogOutput
 
 	model := NewModel(cfg, mockTmux)
 	model.list.Select(0) // Select Claude
@@ -140,7 +142,7 @@ func TestUpdate_PreviewLoop(t *testing.T) {
 	if !ok {
 		t.Fatalf("Expected previewResultMsg, got %T", msg)
 	}
-	if string(resultMsg) != "Output Log Line 1" {
+	if string(resultMsg) != testLogOutput {
 		t.Errorf("Expected log output, got %s", resultMsg)
 	}
 
@@ -148,7 +150,7 @@ func TestUpdate_PreviewLoop(t *testing.T) {
 	updatedModel, _ := model.Update(resultMsg)
 	m := updatedModel.(Model)
 
-	if m.previewContent != "Output Log Line 1" {
+	if m.previewContent != testLogOutput {
 		t.Errorf("Preview content not updated in model. Got: %s", m.previewContent)
 	}
 }

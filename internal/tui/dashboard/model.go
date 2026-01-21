@@ -65,7 +65,6 @@ type Model struct {
 	width          int
 	height         int
 	quitting       bool
-	err            error
 }
 
 // NewModel initializes the dashboard model
