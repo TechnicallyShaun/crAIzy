@@ -64,9 +64,15 @@ issues:
         - errcheck
         - dupl
         - gosec
+        - goconst
     - linters:
         - typecheck
       text: "undefined: yaml"
+    # Bubble Tea models must use value receivers per the tea.Model interface
+    - path: internal/tui/dashboard/model\.go
+      linters:
+        - gocritic
+      text: "hugeParam"
 
 run:
   timeout: 5m
