@@ -198,3 +198,33 @@ func (m *Manager) SendKeysLiteral(sessionID, keys string) error {
 
 	return nil
 }
+
+// SwitchClient switches the current tmux client to the target session
+func (m *Manager) SwitchClient(target string) error {
+	if !m.SessionExists(target) {
+		return fmt.Errorf("session %s does not exist", target)
+	}
+
+	cmd := exec.Command("tmux", "switch-client", "-t", target)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to switch client: %w", err)
+	}
+
+	return nil
+}
+
+// CapturePane returns the last N lines of the target session's output
+func (m *Manager) CapturePane(target string, lines int) (string, error) {
+	if !m.SessionExists(target) {
+		return "", fmt.Errorf("session %s does not exist", target)
+	}
+
+	// Use capture-pane with -p to print to stdout and -S to specify start line
+	cmd := exec.Command("tmux", "capture-pane", "-t", target, "-p", "-S", fmt.Sprintf("-%d", lines))
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to capture pane: %w", err)
+	}
+
+	return string(output), nil
+}
