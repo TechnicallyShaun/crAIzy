@@ -1,6 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white" alt="Go"/>
   <img src="https://img.shields.io/badge/tmux-1BB91F?style=for-the-badge&logo=tmux&logoColor=white" alt="tmux"/>
+  <img src="https://img.shields.io/badge/Bubble%20Tea-F05032?style=for-the-badge&logo=tea&logoColor=white" alt="Bubble Tea"/>
   <img src="https://img.shields.io/badge/AI-FF6F61?style=for-the-badge&logo=openai&logoColor=white" alt="AI"/>
 </p>
 
@@ -9,7 +10,7 @@
 </h1>
 
 <p align="center">
-  <strong>tmux management tool for orchestrating AI agents</strong>
+  <strong>tmux session manager for orchestrating AI agents</strong>
 </p>
 
 <p align="center">
@@ -25,37 +26,64 @@
 
 ## What is crAIzy?
 
-**crAIzy** is a tmux management tool that allows the orchestration of AI agents. It provides an easy-to-use TUI (Terminal User Interface) for orchestrating bash/CLI tools, primarily designed for AI agent management.
+**crAIzy** is a TUI (Terminal User Interface) that acts as a mission control for AI agents. It orchestrates parallel development by managing distinct **tmux sessions** for each agent, giving them isolated git worktrees to code in.
 
-Think of it as a window manager for AI—spin up agents in parallel using git worktrees, switch between them, manage code changes, and let them collaborate on different parts of your project simultaneously. crAIzy handles the entire workflow from agent spawning to PR creation.
+It uses the **Bubble Tea** framework to provide a rich, interactive dashboard.
+
+## The Experience
+
+### 1. The Dashboard (Mission Control)
+The main entry point is a split-screen TUI that allows you to monitor all active agents at a glance.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  crAIzy                                              v0.1.0  │
-├──────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────┐  ┌─────────────────────┐           │
-│  │ [1] feature/auth    │  │ [2] bugfix/api      │           │
-│  │ ████████░░ 80%      │  │ ██████████ Done     │           │
-│  │ Implementing JWT... │  │ Ready for review    │           │
-│  └─────────────────────┘  └─────────────────────┘           │
-│  ┌─────────────────────┐  ┌─────────────────────┐           │
-│  │ [3] refactor/db     │  │ [4] docs/readme     │           │
-│  │ ████░░░░░░ 40%      │  │ ░░░░░░░░░░ Queued   │           │
-│  │ Analyzing schema... │  │ Waiting...          │           │
-│  └─────────────────────┘  └─────────────────────┘           │
-└──────────────────────────────────────────────────────────────┘
+┌ crAIzy ──────────────────────────────────────────────────────────────────┐
+│  ACTIVE AGENTS (3)    │  PREVIEW: Feature/Auth                           │
+│ ──────────────────────│ ──────────────────────────────────────────────── │
+│ > [1] Feature/Auth    │  > Claude: I have updated auth.go                │
+│   ● Active (Claude)   │  > User: Run the tests please.                   │
+│   🌿 feat/login       │  > Claude: Running go test ./...                 │
+│                       │  PASS: TestLogin (0.02s)                         │
+│   [2] Bugfix/API      │  PASS: TestLogout (0.01s)                        │
+│   ○ Idle (GPT-4)      │  ok      github.com/app/auth     0.435s          │
+│   🌿 fix/api-timeout  │                                                  │
+│                       │  > Claude: Tests passed. Ready to push?          │
+│   [3] Docs/Readme     │  _                                               │
+│   ○ Idle (Aider)      │                                                  │
+│   🌿 docs/update      │                                                  │
+│                       │                                                  │
+│                       │                                                  │
+└───────────────────────┴──────────────────────────────────────────────────┘
+  [n] New Agent   [↑/↓] Navigate   [Enter] Attach   [q] Quit Dashboard
+```
+
+### 2. The HUD (In-Session)
+When you attach to an agent (Press `Enter`), you are switched to that agent's dedicated tmux session. crAIzy automatically splits the window to keep a persistent **HUD** at the top, ensuring you always have context and know the controls.
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│ 🤖 AGENT: Feature/Auth  |  🌿 BRANCH: feat/login                         │
+│ 🎮 CONTROLS: [Ctrl+b d] Detach to Dashboard  |  [Ctrl+b s] Session List  │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  > Claude: I'm ready to help. What's the task?                           │
+│                                                                          │
+│  > User: Refactor the login handler.                                     │
+│                                                                          │
+│  > Claude: On it. Checking files...                                      │
+│  _                                                                       │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Features
 
-- **🪟 Multi-Agent Management** — Run multiple AI agents in parallel tmux sessions
-- **⚡ Quick Spawn** — Fire up AI agents with a single command
-- **🔄 Session Switching** — Seamlessly jump between active AI sessions
-- **📊 Status Dashboard** — Real-time overview of all running agents with TUI interface
-- **🌲 Git Worktree Support** — Agents work in isolated git worktrees for parallel development
-- **🔍 Change Detection** — Automatically detect uncommitted changes in worktrees
-- **🚀 Automated Workflow** — Push changes and open PRs directly from the interface
-- **🔄 Auto-Sync** — Periodically fetch and pull to keep worktrees up-to-date
+- **🖥️ Rich TUI Dashboard** — Built with Bubble Tea. Navigate with arrow keys, no complex CLI commands.
+- **⚡ Hotkey-Driven** — Press `n` for a modal to spawn agents. No `Enter` required.
+- **🪟 Session Isolation** — Each agent runs in its own full **tmux session**, not just a window.
+- **👀 Live Previews** — The dashboard polls and displays the live output of any selected agent.
+- **🧭 Persistent HUD** — Never get lost in a terminal again. Every agent session includes a read-only top bar with navigation help.
+- **🌲 Git Worktree Support** — Agents work in isolated git worktrees for parallel development.
+- **🔄 Native Tmux Navigation** — Compatible with standard tmux controls (`Ctrl+b s`, `Ctrl+b d`).
 
 ## Installation
 
@@ -71,37 +99,6 @@ Think of it as a window manager for AI—spin up agents in parallel using git wo
 go install github.com/TechnicallyShaun/crAIzy/cmd/craizy@latest
 ```
 
-### From Source
-
-```bash
-git clone https://github.com/TechnicallyShaun/crAIzy.git
-cd crAIzy
-make build
-sudo cp bin/craizy /usr/local/bin/
-```
-
-Or use `make install` to build and install in one step:
-
-```bash
-make install
-```
-
-### From Release
-
-Download the latest binary for your platform from the [releases page](https://github.com/TechnicallyShaun/crAIzy/releases):
-
-```bash
-# Linux AMD64
-wget https://github.com/TechnicallyShaun/crAIzy/releases/latest/download/craizy-linux-amd64
-chmod +x craizy-linux-amd64
-sudo mv craizy-linux-amd64 /usr/local/bin/craizy
-
-# macOS ARM64 (Apple Silicon)
-wget https://github.com/TechnicallyShaun/crAIzy/releases/latest/download/craizy-darwin-arm64
-chmod +x craizy-darwin-arm64
-sudo mv craizy-darwin-arm64 /usr/local/bin/craizy
-```
-
 ## Usage
 
 ### Quick Start
@@ -115,179 +112,15 @@ cd my-project
 craizy start
 ```
 
-### Complete User Journey
+### Workflow
 
-crAIzy provides a streamlined workflow for orchestrating AI agents to work on your code:
-
-1. **Install crAIzy** (see [Installation](#installation) above)
-
-2. **Initialize a project:**
-   ```bash
-   craizy init myproject
-   ```
-   This creates a project directory with `.craizy/` configuration.
-
-3. **Navigate to your project:**
-   ```bash
-   cd myproject
-   ```
-
-4. **Launch the dashboard:**
-   ```bash
-   craizy start
-   ```
-   This starts the interactive TUI dashboard powered by tmux.
-
-5. **Spawn a new AI agent:**
-   - Press `n` in the dashboard
-   - A modal appears asking which AI to launch
-   - Select your desired AI from the configured options
-
-6. **Interact with the AI:**
-   - Press `Enter` to attach to the AI session
-   - The AI agent will work in an isolated git worktree
-   - Ask the AI to make changes to your source code
-   - The AI can clone repos, make edits, and work in parallel with other agents
-
-7. **Monitor git changes:**
-   - crAIzy automatically detects uncommitted changes in each worktree
-   - Visual indicators show which agents have pending changes
-   - Each agent works in its own branch via git worktree
-
-8. **Push changes:**
-   - Press `p` to push changes from the worktree
-   - Changes are pushed to the origin repository on the agent's branch
-
-9. **Create a Pull Request:**
-   - Press `r` to open a PR
-   - The PR is created from the agent's branch into the main branch
-   - crAIzy handles the entire git workflow
-
-10. **Stay synchronized:**
-    - crAIzy periodically fetches and pulls new changes from origin
-    - New worktrees are always created from an up-to-date state
-    - This ensures all agents work with the latest code
-
-### Initialize a Project
-
-Create a new crAIzy project in a directory:
-
-```bash
-craizy init <project-name>
-```
-
-This creates:
-- A directory named `<project-name>`
-- A `.craizy/` subdirectory with configuration files
-- `config.yaml` - Project configuration
-- `agents.yaml` - AI agent CLI commands
-
-### Start the Dashboard
-
-From within a crAIzy project directory:
-
-```bash
-craizy start
-```
-
-This launches an interactive tmux-based TUI dashboard where you can:
-- Press **N** to spawn a new AI instance (opens modal to select AI)
-- Press **Enter** to attach to and interact with an AI session
-- Use number keys to select specific AI sessions
-- View AI output and git status in real-time
-- Monitor uncommitted changes across all worktrees
-- Push changes and create PRs with keyboard shortcuts
-- Manage multiple AI sessions simultaneously
+1.  **Launch Dashboard:** Run `craizy start`. You see the agent list (empty initially).
+2.  **Spawn Agent:** Press `n`. A modal pops up. Select "Claude" (or your configured agent) using arrow keys and press `Enter`.
+3.  **Attach:** The dashboard creates a new tmux session and worktree. Highlight the new agent and press `Enter`.
+4.  **Interact:** You are now in the agent's session. The top HUD shows you how to leave (`Ctrl+b d`).
+5.  **Detach:** Press `Ctrl+b d`. You are instantly back at the Dashboard.
 
 ### Configuration
-
-crAIzy uses CLI-based AI agents that can be easily managed without API keys.
-
-#### Managing Agents
-
-Add new AI agents using their CLI commands:
-
-```bash
-craizy agent add "claude --dangerously-skip-permissions"
-craizy agent add "copilot --allow-all-tools"
-craizy agent add "aider"
-```
-
-List configured agents:
-
-```bash
-craizy agent list
-```
-
-Remove an agent:
-
-```bash
-craizy agent remove Claude
-```
-
-#### Agent Configuration File
-
-Agents are stored in `.craizy/agents.yaml`:
-
-```yaml
-agents:
-  - name: Claude
-    command: claude --dangerously-skip-permissions
-  
-  - name: Copilot
-    command: copilot --allow-all-tools
-  
-  - name: Aider
-    command: aider
-```
-
-Each agent entry specifies:
-- **name**: Display name for the AI agent
-- **command**: CLI command to launch the agent (executed in a new tmux window)
-
-**Note**: The tool doesn't check if CLI tools are installed - it simply launches them in tmux windows.
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `craizy init <name>` | Initialize a new crAIzy project |
-| `craizy start` | Start the interactive dashboard |
-| `craizy agent add <command>` | Add a new AI agent |
-| `craizy agent list` | List all configured agents |
-| `craizy agent remove <name>` | Remove an agent |
-| `craizy version` | Show version information |
-| `craizy help` | Display help message |
-
-## Building and Testing
-
-### Build
-
-```bash
-make build
-```
-
-The binary will be created at `bin/craizy`.
-
-### Run Tests
-
-```bash
-make test
-```
-
-### Run Linter
-
-```bash
-make lint
-```
-
-### Generate Coverage Report
-
-```bash
-make coverage
-```
-
-## Configuration
 
 Configuration is stored in `.craizy/config.yaml`:
 
@@ -301,65 +134,43 @@ AI agent definitions are in `.craizy/agents.yaml`:
 agents:
   - name: Claude
     command: claude --dangerously-skip-permissions
-  - name: Copilot
-    command: copilot --allow-all-tools
+  - name: Aider
+    command: aider
 ```
 
-## CI/CD
+## Commands
 
-This project includes GitHub Actions workflows for:
-
-- **Build & Test**: Runs on every push and PR
-- **Linting**: Code quality checks with golangci-lint
-- **Release**: Automated releases with multi-platform binaries
-
-To create a release, push a tag:
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
+| Command | Description |
+|---------|-------------|
+| `craizy init <name>` | Initialize a new crAIzy project |
+| `craizy start` | Start the interactive TUI dashboard |
+| `craizy agent add` | Add a new AI agent configuration |
+| `craizy agent list` | List configured agents |
 
 ## Development
+
+### Tech Stack
+*   **Language:** Go
+*   **TUI Framework:** [Bubble Tea](https://github.com/charmbracelet/bubbletea) (The Elm Architecture)
+*   **Styling:** [Lip Gloss](https://github.com/charmbracelet/lipgloss)
+*   **Multiplexer:** tmux (via CLI wrapper)
 
 ### Project Structure
 
 ```
 crAIzy/
 ├── cmd/
-│   └── craizy/          # Main entry point
+│   ├── craizy/          # Main entry point
+│   └── hud/             # The lightweight binary for the session top-bar
 ├── internal/
 │   ├── config/          # Configuration management
-│   ├── tmux/            # Tmux session management
-│   └── ui/              # Dashboard UI
-├── .github/
-│   └── workflows/       # CI/CD pipelines
-├── Makefile             # Build automation
-└── .golangci.yml        # Linter configuration
+│   ├── tmux/            # Tmux session/window orchestration
+│   └── tui/             # Bubble Tea models and views
+│       ├── dashboard/   # Main dashboard logic
+│       └── hud/         # HUD display logic
+└── .github/
 ```
-
-### Adding Tests
-
-Tests should be placed alongside the code they test with `_test.go` suffix:
-
-```bash
-# Run all tests
-make test
-
-# Run specific package tests
-go test -v ./internal/config
-```
-
-## Contributing
-
-Contributions are welcome! Please read our contributing guidelines before submitting PRs.
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-<p align="center">
-  <sub>Built with 🧠 and ☕ by developers who talk to their terminal</sub>
-</p>
