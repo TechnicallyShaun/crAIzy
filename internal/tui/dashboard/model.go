@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/TechnicallyShaun/crAIzy/internal/config"
-	"github.com/TechnicallyShaun/crAIzy/internal/tmux"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/TechnicallyShaun/crAIzy/internal/config"
+	"github.com/TechnicallyShaun/crAIzy/internal/tmux"
 )
 
 const (

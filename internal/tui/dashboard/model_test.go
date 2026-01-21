@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/TechnicallyShaun/crAIzy/internal/config"
 	"github.com/TechnicallyShaun/crAIzy/internal/tmux"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 const testLogOutput = "Output Log Line 1"
