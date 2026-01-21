@@ -11,7 +11,7 @@ import (
 )
 
 // shellEscape escapes a string for safe use in a bash single-quoted string
-// by replacing single quotes with '\''
+// by replacing single quotes with '\”
 func shellEscape(s string) string {
 	return strings.ReplaceAll(s, "'", "'\"'\"'")
 }
