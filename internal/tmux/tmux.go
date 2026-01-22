@@ -41,6 +41,9 @@ func (m *Manager) CreateSession(name, command, cwd string) (*Session, error) {
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
 
+	// Configure status bar to show detach help
+	_ = exec.Command("tmux", "set-option", "-t", name, "status-right", " #[fg=green,bg=black] Detach: Ctrl+b d ").Run()
+
 	session := &Session{
 		ID:      name,
 		Name:    name,
