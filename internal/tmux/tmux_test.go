@@ -11,14 +11,6 @@ func TestNewManager(t *testing.T) {
 	if mgr == nil {
 		t.Fatal("NewManager returned nil")
 	}
-
-	if mgr.sessionPrefix != "craizy" {
-		t.Errorf("Expected session prefix 'craizy', got '%s'", mgr.sessionPrefix)
-	}
-
-	if mgr.sessions == nil {
-		t.Error("Sessions map should not be nil")
-	}
 }
 
 func TestIsTmuxAvailable(t *testing.T) {
@@ -65,10 +57,10 @@ func TestCreateSession(t *testing.T) {
 	command := "sleep 5"
 
 	// Clean up any existing session
-	exec.Command("tmux", "kill-session", "-t", mgr.sessionPrefix+"-"+sessionName).Run()
-	defer exec.Command("tmux", "kill-session", "-t", mgr.sessionPrefix+"-"+sessionName).Run()
+	exec.Command("tmux", "kill-session", "-t", sessionName).Run()
+	defer exec.Command("tmux", "kill-session", "-t", sessionName).Run()
 
-	session, err := mgr.CreateSession(sessionName, command)
+	session, err := mgr.CreateSession(sessionName, command, "")
 	if err != nil {
 		t.Fatalf("CreateSession failed: %v", err)
 	}
@@ -93,9 +85,8 @@ func TestCreateSession(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	// Verify session exists in tmux
-	fullName := mgr.sessionPrefix + "-" + sessionName
-	if !mgr.SessionExists(fullName) {
-		t.Errorf("Session %s should exist in tmux", fullName)
+	if !mgr.SessionExists(sessionName) {
+		t.Errorf("Session %s should exist in tmux", sessionName)
 	}
 }
 
@@ -109,12 +100,11 @@ func TestCreateDuplicateSession(t *testing.T) {
 	command := "sleep 10"
 
 	// Clean up
-	fullName := mgr.sessionPrefix + "-" + sessionName
-	exec.Command("tmux", "kill-session", "-t", fullName).Run()
-	defer exec.Command("tmux", "kill-session", "-t", fullName).Run()
+	exec.Command("tmux", "kill-session", "-t", sessionName).Run()
+	defer exec.Command("tmux", "kill-session", "-t", sessionName).Run()
 
 	// Create first session
-	_, err := mgr.CreateSession(sessionName, command)
+	_, err := mgr.CreateSession(sessionName, command, "")
 	if err != nil {
 		t.Fatalf("First CreateSession failed: %v", err)
 	}
@@ -122,7 +112,7 @@ func TestCreateDuplicateSession(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Try to create duplicate
-	_, err = mgr.CreateSession(sessionName, command)
+	_, err = mgr.CreateSession(sessionName, command, "")
 	if err == nil {
 		t.Error("CreateSession should fail for duplicate session")
 	}
@@ -135,24 +125,23 @@ func TestSessionExists(t *testing.T) {
 
 	mgr := NewManager()
 	sessionName := "test-exists"
-	fullName := mgr.sessionPrefix + "-" + sessionName
 
 	// Clean up
-	exec.Command("tmux", "kill-session", "-t", fullName).Run()
+	exec.Command("tmux", "kill-session", "-t", sessionName).Run()
 
 	// Should not exist
-	if mgr.SessionExists(fullName) {
+	if mgr.SessionExists(sessionName) {
 		t.Error("Session should not exist before creation")
 	}
 
 	// Create session
-	mgr.CreateSession(sessionName, "sleep 5")
-	defer exec.Command("tmux", "kill-session", "-t", fullName).Run()
+	mgr.CreateSession(sessionName, "sleep 5", "")
+	defer exec.Command("tmux", "kill-session", "-t", sessionName).Run()
 
 	time.Sleep(100 * time.Millisecond)
 
 	// Should exist
-	if !mgr.SessionExists(fullName) {
+	if !mgr.SessionExists(sessionName) {
 		t.Error("Session should exist after creation")
 	}
 }
@@ -164,28 +153,24 @@ func TestListSessions(t *testing.T) {
 
 	mgr := NewManager()
 
-	// Initially empty
-	sessions := mgr.ListSessions()
-	if len(sessions) != 0 {
-		t.Errorf("Expected 0 sessions, got %d", len(sessions))
-	}
-
 	// Create a session
 	sessionName := "test-list"
-	fullName := mgr.sessionPrefix + "-" + sessionName
-	defer exec.Command("tmux", "kill-session", "-t", fullName).Run()
+	defer exec.Command("tmux", "kill-session", "-t", sessionName).Run()
 
-	mgr.CreateSession(sessionName, "sleep 5")
+	mgr.CreateSession(sessionName, "sleep 5", "")
 	time.Sleep(100 * time.Millisecond)
 
-	// Should have one session
-	sessions = mgr.ListSessions()
-	if len(sessions) != 1 {
-		t.Errorf("Expected 1 session, got %d", len(sessions))
+	// Should include the session
+	sessions := mgr.ListSessions()
+	found := false
+	for _, s := range sessions {
+		if s.Name == sessionName || s.ID == sessionName {
+			found = true
+			break
+		}
 	}
-
-	if sessions[0].Name != sessionName {
-		t.Errorf("Expected session name %s, got %s", sessionName, sessions[0].Name)
+	if !found {
+		t.Errorf("Expected session %s in list", sessionName)
 	}
 }
 
@@ -196,19 +181,18 @@ func TestGetSessionContent(t *testing.T) {
 
 	mgr := NewManager()
 	sessionName := "test-content"
-	fullName := mgr.sessionPrefix + "-" + sessionName
 	testOutput := "Hello crAIzy"
 
 	// Clean up
-	exec.Command("tmux", "kill-session", "-t", fullName).Run()
-	defer exec.Command("tmux", "kill-session", "-t", fullName).Run()
+	exec.Command("tmux", "kill-session", "-t", sessionName).Run()
+	defer exec.Command("tmux", "kill-session", "-t", sessionName).Run()
 
 	// Create session with echo command
-	mgr.CreateSession(sessionName, "echo '"+testOutput+"'; sleep 2")
+	mgr.CreateSession(sessionName, "echo '"+testOutput+"'; sleep 2", "")
 	time.Sleep(500 * time.Millisecond)
 
 	// Get content
-	content, err := mgr.GetSessionContent(fullName)
+	content, err := mgr.GetSessionContent(sessionName)
 	if err != nil {
 		t.Fatalf("GetSessionContent failed: %v", err)
 	}
@@ -237,22 +221,21 @@ func TestKillSession(t *testing.T) {
 
 	mgr := NewManager()
 	sessionName := "test-kill"
-	fullName := mgr.sessionPrefix + "-" + sessionName
 
 	// Clean up
-	exec.Command("tmux", "kill-session", "-t", fullName).Run()
+	exec.Command("tmux", "kill-session", "-t", sessionName).Run()
 
 	// Create session
-	mgr.CreateSession(sessionName, "sleep 10")
+	mgr.CreateSession(sessionName, "sleep 10", "")
 	time.Sleep(100 * time.Millisecond)
 
 	// Verify it exists
-	if !mgr.SessionExists(fullName) {
+	if !mgr.SessionExists(sessionName) {
 		t.Fatal("Session should exist before kill")
 	}
 
 	// Kill it
-	err := mgr.KillSession(fullName)
+	err := mgr.KillSession(sessionName)
 	if err != nil {
 		t.Fatalf("KillSession failed: %v", err)
 	}
@@ -261,7 +244,7 @@ func TestKillSession(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Verify it's gone
-	if mgr.SessionExists(fullName) {
+	if mgr.SessionExists(sessionName) {
 		t.Error("Session should not exist after kill")
 	}
 }

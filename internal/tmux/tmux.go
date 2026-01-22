@@ -2,16 +2,12 @@ package tmux
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 )
 
-// Manager manages tmux sessions
-type Manager struct {
-	sessionPrefix string
-	sessions      map[string]*Session
-}
+// Manager manages tmux sessions by delegating to the tmux CLI.
+type Manager struct{}
 
 // Session represents a tmux session
 type Session struct {
@@ -23,68 +19,34 @@ type Session struct {
 
 // NewManager creates a new tmux manager
 func NewManager() *Manager {
-	return &Manager{
-		sessionPrefix: "craizy",
-		sessions:      make(map[string]*Session),
-	}
+	return &Manager{}
 }
 
-// CreateSession creates a new tmux session
-func (m *Manager) CreateSession(name, command string) (*Session, error) {
-	sessionName := fmt.Sprintf("%s-%s", m.sessionPrefix, name)
-
-	// Check if session already exists
-	if m.SessionExists(sessionName) {
-		return nil, fmt.Errorf("session %s already exists", sessionName)
+// CreateSession creates a new tmux session with the provided name and command.
+// If cwd is non-empty, the session starts in that directory.
+func (m *Manager) CreateSession(name, command, cwd string) (*Session, error) {
+	if m.SessionExists(name) {
+		return nil, fmt.Errorf("session %s already exists", name)
 	}
 
-	// Create new detached session
-	cmd := exec.Command("tmux", "new-session", "-d", "-s", sessionName, command)
+	args := []string{"new-session", "-d", "-s", name}
+	if command != "" {
+		args = append(args, "bash", "-lc", command)
+	}
+	cmd := exec.Command("tmux", args...)
+	if cwd != "" {
+		cmd.Dir = cwd
+	}
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
 
 	session := &Session{
-		ID:      sessionName,
+		ID:      name,
 		Name:    name,
 		Command: command,
 		Active:  true,
 	}
-
-	m.sessions[sessionName] = session
-	return session, nil
-}
-
-// CreateWindow creates a new tmux window and sends keys to it
-func (m *Manager) CreateWindow(name, command string) (*Session, error) {
-	windowName := fmt.Sprintf("%s-%s", m.sessionPrefix, name)
-
-	// Check if we're in a tmux session
-	// If not in tmux (TMUX env var not set), fall back to creating a new session
-	// This ensures the command can still be executed in an isolated tmux session
-	if os.Getenv("TMUX") == "" {
-		return m.CreateSession(name, command)
-	}
-
-	// Create new window in current session
-	cmd := exec.Command("tmux", "new-window", "-n", windowName)
-	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("failed to create window: %w", err)
-	}
-
-	// Send the command keys to the new window
-	if err := m.SendKeys(windowName, command); err != nil {
-		return nil, fmt.Errorf("failed to send keys: %w", err)
-	}
-
-	session := &Session{
-		ID:      windowName,
-		Name:    name,
-		Command: command,
-		Active:  true,
-	}
-
-	m.sessions[windowName] = session
 	return session, nil
 }
 
@@ -103,11 +65,25 @@ func (m *Manager) SessionExists(name string) bool {
 	return cmd.Run() == nil
 }
 
-// ListSessions returns all managed sessions
+// ListSessions returns all tmux sessions currently running
 func (m *Manager) ListSessions() []*Session {
-	sessions := make([]*Session, 0, len(m.sessions))
-	for _, session := range m.sessions {
-		sessions = append(sessions, session)
+	cmd := exec.Command("tmux", "list-sessions", "-F", "#{session_name}")
+	output, err := cmd.Output()
+	if err != nil {
+		return []*Session{}
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	sessions := make([]*Session, 0, len(lines))
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		sessions = append(sessions, &Session{
+			ID:     line,
+			Name:   line,
+			Active: true,
+		})
 	}
 	return sessions
 }
@@ -151,7 +127,6 @@ func (m *Manager) KillSession(sessionID string) error {
 		return fmt.Errorf("failed to kill session: %w", err)
 	}
 
-	delete(m.sessions, sessionID)
 	return nil
 }
 
@@ -219,8 +194,6 @@ func (m *Manager) CapturePane(target string, lines int) (string, error) {
 		return "", fmt.Errorf("session %s does not exist", target)
 	}
 
-	// Use capture-pane with -p to print to stdout and -S to specify start line
-	// #nosec G204 - target is validated by SessionExists above
 	cmd := exec.Command("tmux", "capture-pane", "-t", target, "-p", "-S", fmt.Sprintf("-%d", lines))
 	output, err := cmd.Output()
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/TechnicallyShaun/crAIzy/internal/config"
 	"github.com/TechnicallyShaun/crAIzy/internal/tmux"
+	"github.com/TechnicallyShaun/crAIzy/internal/worktree"
 )
 
 const (
@@ -29,7 +30,7 @@ var (
 // This allows us to mock the tmux layer for testing and ensures the dashboard
 // relies on behavior, not concrete implementations.
 type SessionManager interface {
-	CreateSession(name, command string) (*tmux.Session, error)
+	CreateSession(name, command, cwd string) (*tmux.Session, error)
 	ListSessions() []*tmux.Session
 	SessionExists(name string) bool
 	KillSession(name string) error
@@ -64,6 +65,7 @@ type Model struct {
 	list           list.Model
 	cfg            *config.Config
 	tmux           SessionManager
+	worktrees      *worktree.Manager
 	previewContent string
 	width          int
 	height         int
@@ -107,6 +109,7 @@ func NewModel(cfg *config.Config, tm SessionManager) Model {
 		list:           l,
 		cfg:            cfg,
 		tmux:           tm,
+		worktrees:      worktree.NewManager(""),
 		modal:          NewModal(cfg.Agents),
 		activeSessions: activeSessions,
 	}
@@ -162,7 +165,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case instanceValidatedMsg:
 		m.modal.Hide()
-		return m, createAndAttachSessionCmdWithInstance(m.tmux, msg.Agent, msg.Name)
+		return m, tea.Batch(
+			createSessionWithWorktreeCmd(m.tmux, m.worktrees, m.cfg, msg.Agent, msg.Name),
+			func() tea.Msg { return refreshListMsg{} },
+		)
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -274,7 +280,7 @@ func attachToSessionCmd(tm SessionManager, agent AgentItem) tea.Cmd {
 			session = sessionName(agent.Name)
 		}
 		if !tm.SessionExists(session) {
-			_, err := tm.CreateSession(session, agent.Command)
+			_, err := tm.CreateSession(session, agent.Command, "")
 			if err != nil {
 				return nil
 			}
@@ -284,17 +290,28 @@ func attachToSessionCmd(tm SessionManager, agent AgentItem) tea.Cmd {
 	}
 }
 
-func createAndAttachSessionCmdWithInstance(tm SessionManager, agent config.Agent, instance string) tea.Cmd {
+func createSessionWithWorktreeCmd(tm SessionManager, wt *worktree.Manager, cfg *config.Config, agent config.Agent, instance string) tea.Cmd {
 	return func() tea.Msg {
 		session := sessionNameWithInstance(agent.Name, instance)
-		if !tm.SessionExists(session) {
-			_, err := tm.CreateSession(session, agent.Command)
-			if err != nil {
-				return nil
-			}
+
+		if tm.SessionExists(session) {
+			return previewResultMsg(fmt.Sprintf("Session %s already exists", session))
 		}
-		_ = tm.SwitchClient(session)
-		return tea.Quit
+
+		cwd := ""
+		if wt != nil && cfg != nil {
+			path, err := wt.CreateWorktree(cfg.ProjectName, session)
+			if err != nil {
+				return previewResultMsg(fmt.Sprintf("Worktree error: %v", err))
+			}
+			cwd = path
+		}
+
+		if _, err := tm.CreateSession(session, agent.Command, cwd); err != nil {
+			return previewResultMsg(fmt.Sprintf("Error creating session: %v", err))
+		}
+
+		return refreshListMsg{}
 	}
 }
 

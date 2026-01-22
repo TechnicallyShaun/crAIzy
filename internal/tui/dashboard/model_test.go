@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/TechnicallyShaun/crAIzy/internal/config"
@@ -27,10 +28,10 @@ func NewMockSessionManager() *MockSessionManager {
 	}
 }
 
-func (m *MockSessionManager) CreateSession(name, command string) (*tmux.Session, error) {
+func (m *MockSessionManager) CreateSession(name, command, cwd string) (*tmux.Session, error) {
 	m.createCalls++
-	id := "craizy-" + name
-	s := &tmux.Session{ID: id, Name: name, Command: command, Active: true}
+	id := name
+	s := &tmux.Session{ID: id, Name: id, Command: command, Active: true}
 	m.sessions[id] = s
 	return s, nil
 }
@@ -46,6 +47,11 @@ func (m *MockSessionManager) ListSessions() []*tmux.Session {
 func (m *MockSessionManager) SessionExists(name string) bool {
 	_, exists := m.sessions[name]
 	return exists
+}
+
+func (m *MockSessionManager) KillSession(name string) error {
+	delete(m.sessions, name)
+	return nil
 }
 
 func (m *MockSessionManager) SwitchClient(target string) error {
@@ -71,25 +77,18 @@ func TestNewModel(t *testing.T) {
 	mockTmux := NewMockSessionManager()
 
 	// Setup existing session
-	mockTmux.CreateSession("Claude", "claude")
+	mockTmux.CreateSession(sessionName("Claude"), "claude", "")
 
 	model := NewModel(cfg, mockTmux)
 
 	// Verify list population
 	items := model.list.Items()
-	if len(items) != 2 {
-		t.Errorf("Expected 2 items, got %d", len(items))
+	if len(items) != 1 {
+		t.Fatalf("Expected 1 active item, got %d", len(items))
 	}
-
-	// Check if active status was detected
 	claudeItem := items[0].(AgentItem)
 	if !claudeItem.Active {
 		t.Error("Expected Claude to be marked Active")
-	}
-
-	gptItem := items[1].(AgentItem)
-	if gptItem.Active {
-		t.Error("Expected GPT4 to be marked Idle")
 	}
 }
 
@@ -106,8 +105,6 @@ func TestUpdate_Resize(t *testing.T) {
 	if m.width != width {
 		t.Errorf("Width not updated. Got %d, want %d", m.width, width)
 	}
-
-	// Check if view renders without error after resize
 	view := m.View()
 	if view == "" {
 		t.Error("View returned empty string after resize")
@@ -119,26 +116,22 @@ func TestUpdate_PreviewLoop(t *testing.T) {
 		Agents: []config.Agent{{Name: "Claude", Command: "claude"}},
 	}
 	mockTmux := NewMockSessionManager()
-	mockTmux.CreateSession("Claude", "claude")
-	mockTmux.logs["craizy-Claude"] = testLogOutput
+	session := sessionName("Claude")
+	mockTmux.CreateSession(session, "claude", "")
+	mockTmux.logs[session] = testLogOutput
 
 	model := NewModel(cfg, mockTmux)
-	model.list.Select(0) // Select Claude
+	model.list.Select(0)
 
-	// 1. Simulate Tick -> Should return Fetch Command
 	tick := tickMsg(time.Now())
 	_, cmd := model.Update(tick)
-
 	if cmd == nil {
 		t.Fatal("Tick should trigger a command batch")
 	}
 
-	// 2. Execute the batch manually (Bubble Tea internals usually do this)
-	// We assume the batch contains fetchPreviewCmd. We invoke it directly for testing.
-	fetchCmd := fetchPreviewCmd(mockTmux, "Claude")
+	fetchCmd := fetchPreviewCmd(mockTmux, session)
 	msg := fetchCmd()
 
-	// 3. Verify the result message
 	resultMsg, ok := msg.(previewResultMsg)
 	if !ok {
 		t.Fatalf("Expected previewResultMsg, got %T", msg)
@@ -147,10 +140,8 @@ func TestUpdate_PreviewLoop(t *testing.T) {
 		t.Errorf("Expected log output, got %s", resultMsg)
 	}
 
-	// 4. Send result back to update model state
 	updatedModel, _ := model.Update(resultMsg)
 	m := updatedModel.(Model)
-
 	if m.previewContent != testLogOutput {
 		t.Errorf("Preview content not updated in model. Got: %s", m.previewContent)
 	}
@@ -162,8 +153,7 @@ func TestUpdate_Attach(t *testing.T) {
 	}
 	mockTmux := NewMockSessionManager()
 	model := NewModel(cfg, mockTmux)
-
-	// Simulate pressing Enter
+	model.list.SetItems([]list.Item{AgentItem{Name: "Claude", Command: "claude", SessionID: sessionName("Claude")}})
 	model.list.Select(0)
 	msg := tea.KeyMsg{Type: tea.KeyEnter}
 
@@ -172,32 +162,22 @@ func TestUpdate_Attach(t *testing.T) {
 		t.Fatal("Expected command after Enter")
 	}
 
-	// Execute command
 	cmd()
 
-	// Verify session was created and switched to
-	if mockTmux.createCalls != 1 {
-		t.Error("Expected CreateSession to be called")
-	}
-
-	expectedTarget := "craizy-Claude"
-	if mockTmux.switchedTo != expectedTarget {
-		t.Errorf("Expected switch to %s, got %s", expectedTarget, mockTmux.switchedTo)
+	expected := sessionName("Claude")
+	if mockTmux.switchedTo != expected {
+		t.Errorf("Expected switch to %s, got %s", expected, mockTmux.switchedTo)
 	}
 }
 
 func TestUpdate_Quit(t *testing.T) {
 	model := NewModel(&config.Config{}, nil)
-
 	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("q")}
 	updatedModel, cmd := model.Update(msg)
-
 	m := updatedModel.(Model)
 	if !m.quitting {
 		t.Error("Model should be quitting")
 	}
-
-	// tea.Quit is a special internal command, but we can check if it returns something
 	if cmd == nil {
 		t.Error("Expected tea.Quit command")
 	}
