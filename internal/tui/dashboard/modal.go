@@ -72,6 +72,11 @@ func (m Modal) Update(msg tea.Msg) (Modal, tea.Cmd) {
 				m.selected = m.agents[m.cursor]
 				return m, promptInstanceNameCmd()
 			}
+			// if already selected and we receive enter, treat as confirm
+			name := strings.TrimSpace(m.instanceName)
+			if name != "" {
+				return m, instanceValidatedCmd(name, m.selected)
+			}
 		default:
 			if m.selected.Name != "" {
 				switch msg.Type {
