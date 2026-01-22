@@ -194,6 +194,7 @@ func (m *Manager) CapturePane(target string, lines int) (string, error) {
 		return "", fmt.Errorf("session %s does not exist", target)
 	}
 
+	// #nosec G204 -- target is validated via SessionExists, lines is an integer formatted safely
 	cmd := exec.Command("tmux", "capture-pane", "-t", target, "-p", "-S", fmt.Sprintf("-%d", lines))
 	output, err := cmd.Output()
 	if err != nil {
