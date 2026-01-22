@@ -54,7 +54,10 @@ func handleInit(name string) {
 	if !isGitRepo(".") {
 		fmt.Print("No git repository detected. Initialize git here? [y/N]: ")
 		var resp string
-		fmt.Scanln(&resp)
+		if _, err := fmt.Scanln(&resp); err != nil {
+			fmt.Println("\nAborting: git repository is required.")
+			os.Exit(1)
+		}
 		if resp == "y" || resp == "Y" {
 			if err := runGitInit("."); err != nil {
 				fmt.Printf("Error running git init: %v\n", err)
