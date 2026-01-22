@@ -66,7 +66,7 @@ func (m Modal) Update(msg tea.Msg) (Modal, tea.Cmd) {
 		case "esc":
 			m.Hide()
 			return m, promptInstanceNameCmd() // signal cancel to close modal
-		case "enter":
+		case keyEnter:
 			if m.selected.Name == "" {
 				m.selected = m.agents[m.cursor]
 				return m, promptInstanceNameCmd()

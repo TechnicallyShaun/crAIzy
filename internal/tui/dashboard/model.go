@@ -183,7 +183,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			agent := selectedItem.(AgentItem)
 			return m, killSessionCmd(m.tmux, agent)
 		}
-	case "enter":
+	case keyEnter:
 		if selectedItem := m.list.SelectedItem(); selectedItem != nil {
 			agent := selectedItem.(AgentItem)
 			return m, attachToSessionCmd(m.tmux, agent)
