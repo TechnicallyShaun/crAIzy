@@ -141,57 +141,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c":
-			m.quitting = true
-			return m, tea.Quit
-		case "n":
-			m.modal.Show()
-			return m, nil
-		case "k":
-			if selectedItem := m.list.SelectedItem(); selectedItem != nil {
-				agent := selectedItem.(AgentItem)
-				return m, killSessionCmd(m.tmux, agent)
-			}
-		case "enter":
-			if selectedItem := m.list.SelectedItem(); selectedItem != nil {
-				agent := selectedItem.(AgentItem)
-				return m, attachToSessionCmd(m.tmux, agent)
-			}
-		}
+		return m.handleKeyMsg(msg)
 
 	case promptInstanceMsg:
 		// nothing; modal handles input
 
 	case instanceValidatedMsg:
-		m.modal.Hide()
-		return m, tea.Batch(
-			createSessionWithWorktreeCmd(m.tmux, m.worktrees, m.cfg, msg.Agent, msg.Name),
-			func() tea.Msg { return refreshListMsg{} },
-		)
+		return m.handleInstanceValidated(msg)
 
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-
-		listWidth := msg.Width / 4
-		if listWidth < 24 {
-			listWidth = 24
-		}
-		previewWidth := msg.Width - listWidth - 4
-		if previewWidth < 20 {
-			previewWidth = 20
-		}
-
-		m.list.SetSize(listWidth, msg.Height-3)
-		previewStyle = previewStyle.Width(previewWidth).Height(msg.Height - 3)
+		return m.handleWindowResize(msg)
 
 	case tickMsg:
-		if selectedItem := m.list.SelectedItem(); selectedItem != nil {
-			agent := selectedItem.(AgentItem)
-			cmds = append(cmds, fetchPreviewCmd(m.tmux, agent.SessionID))
-		}
-		cmds = append(cmds, tickCmd(), func() tea.Msg { return refreshListMsg{} })
+		return m.handleTick(cmds)
 
 	case refreshListMsg:
 		m = refreshList(m)
@@ -204,6 +166,67 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.list, listCmd = m.list.Update(msg)
 	cmds = append(cmds, listCmd, func() tea.Msg { return refreshListMsg{} })
 
+	return m, tea.Batch(cmds...)
+}
+
+// handleKeyMsg processes keyboard input
+func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "q", "ctrl+c":
+		m.quitting = true
+		return m, tea.Quit
+	case "n":
+		m.modal.Show()
+		return m, nil
+	case "k":
+		if selectedItem := m.list.SelectedItem(); selectedItem != nil {
+			agent := selectedItem.(AgentItem)
+			return m, killSessionCmd(m.tmux, agent)
+		}
+	case "enter":
+		if selectedItem := m.list.SelectedItem(); selectedItem != nil {
+			agent := selectedItem.(AgentItem)
+			return m, attachToSessionCmd(m.tmux, agent)
+		}
+	}
+	return m, nil
+}
+
+// handleInstanceValidated processes instance validation
+func (m Model) handleInstanceValidated(msg instanceValidatedMsg) (tea.Model, tea.Cmd) {
+	m.modal.Hide()
+	return m, tea.Batch(
+		createSessionWithWorktreeCmd(m.tmux, m.worktrees, m.cfg, msg.Agent, msg.Name),
+		func() tea.Msg { return refreshListMsg{} },
+	)
+}
+
+// handleWindowResize processes window resize events
+func (m Model) handleWindowResize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+
+	listWidth := msg.Width / 4
+	if listWidth < 24 {
+		listWidth = 24
+	}
+	previewWidth := msg.Width - listWidth - 4
+	if previewWidth < 20 {
+		previewWidth = 20
+	}
+
+	m.list.SetSize(listWidth, msg.Height-3)
+	previewStyle = previewStyle.Width(previewWidth).Height(msg.Height - 3)
+	return m, nil
+}
+
+// handleTick processes tick events for updating previews
+func (m Model) handleTick(cmds []tea.Cmd) (tea.Model, tea.Cmd) {
+	if selectedItem := m.list.SelectedItem(); selectedItem != nil {
+		agent := selectedItem.(AgentItem)
+		cmds = append(cmds, fetchPreviewCmd(m.tmux, agent.SessionID))
+	}
+	cmds = append(cmds, tickCmd(), func() tea.Msg { return refreshListMsg{} })
 	return m, tea.Batch(cmds...)
 }
 

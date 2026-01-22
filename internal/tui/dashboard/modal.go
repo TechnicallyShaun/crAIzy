@@ -73,30 +73,36 @@ func (m Modal) Update(msg tea.Msg) (Modal, tea.Cmd) {
 			}
 		default:
 			if m.selected.Name != "" {
-				switch msg.Type {
-				case tea.KeyBackspace, tea.KeyDelete:
-					if m.instanceName != "" {
-						m.instanceName = m.instanceName[:len(m.instanceName)-1]
-					}
-				case tea.KeySpace:
-					m.instanceName += " "
-				case tea.KeyEnter:
-					name := strings.TrimSpace(m.instanceName)
-					if name != "" {
-						return m, instanceValidatedCmd(name, m.selected)
-					}
-				case tea.KeyEsc:
-					m.Hide()
-					return m, promptInstanceNameCmd()
-				default:
-					if len(msg.Runes) > 0 {
-						m.instanceName += string(msg.Runes)
-					}
-				}
+				return m.handleTextInput(msg)
 			}
 		}
 	}
 
+	return m, nil
+}
+
+// handleTextInput processes text input for instance naming
+func (m Modal) handleTextInput(msg tea.KeyMsg) (Modal, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyBackspace, tea.KeyDelete:
+		if m.instanceName != "" {
+			m.instanceName = m.instanceName[:len(m.instanceName)-1]
+		}
+	case tea.KeySpace:
+		m.instanceName += " "
+	case tea.KeyEnter:
+		name := strings.TrimSpace(m.instanceName)
+		if name != "" {
+			return m, instanceValidatedCmd(name, m.selected)
+		}
+	case tea.KeyEsc:
+		m.Hide()
+		return m, promptInstanceNameCmd()
+	default:
+		if len(msg.Runes) > 0 {
+			m.instanceName += string(msg.Runes)
+		}
+	}
 	return m, nil
 }
 
