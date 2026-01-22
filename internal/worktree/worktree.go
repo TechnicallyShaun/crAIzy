@@ -34,7 +34,7 @@ func (m *Manager) CreateWorktree(project, session string) (string, error) {
 	}
 
 	var out bytes.Buffer
-	cmd := exec.Command("git", "worktree", "add", "--force", target)
+	cmd := exec.Command("git", "worktree", "add", "--force", "-B", session, target)
 	cmd.Stdout = &out
 	cmd.Stderr = &out
 	cmd.Dir = repoRoot
