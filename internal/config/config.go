@@ -66,11 +66,15 @@ func InitProject(name string) error {
 		},
 		{
 			Name:    "Copilot",
-			Command: "copilot --allow-all-tools",
+			Command: "copilot --allow-all-tools --allow-all-paths",
 		},
 		{
-			Name:    "Aider",
-			Command: "aider",
+			Name:    "Gemini",
+			Command: "gemini --yolo",
+		},
+		{
+			Name:    "Codex",
+			Command: "codex --full-auto",
 		},
 	}
 

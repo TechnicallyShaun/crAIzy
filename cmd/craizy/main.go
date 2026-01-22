@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/TechnicallyShaun/crAIzy/internal/config"
 	"github.com/TechnicallyShaun/crAIzy/internal/tmux"
-	"github.com/TechnicallyShaun/crAIzy/internal/ui"
+	"github.com/TechnicallyShaun/crAIzy/internal/tui/dashboard"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 const version = "0.1.0"
@@ -49,6 +51,22 @@ func main() {
 }
 
 func handleInit(name string) {
+	if !isGitRepo(".") {
+		fmt.Print("No git repository detected. Initialize git here? [y/N]: ")
+		var resp string
+		fmt.Scanln(&resp)
+		if resp == "y" || resp == "Y" {
+			if err := runGitInit("."); err != nil {
+				fmt.Printf("Error running git init: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println("✓ Initialized git repository.")
+		} else {
+			fmt.Println("Aborting: git repository is required.")
+			os.Exit(1)
+		}
+	}
+
 	if err := config.InitProject(name); err != nil {
 		fmt.Printf("Error initializing project: %v\n", err)
 		os.Exit(1)
@@ -64,6 +82,11 @@ func handleStart() {
 		os.Exit(1)
 	}
 
+	if !isGitRepo(".") {
+		fmt.Println("Error: git repository not initialized")
+		os.Exit(1)
+	}
+
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -74,12 +97,29 @@ func handleStart() {
 	// Create tmux manager
 	tmuxMgr := tmux.NewManager()
 
-	// Start the dashboard
-	dashboard := ui.NewDashboard(cfg, tmuxMgr)
-	if err := dashboard.Start(); err != nil {
+	// Create the Bubble Tea dashboard model
+	model := dashboard.NewModel(cfg, tmuxMgr)
+
+	// Start the Bubble Tea program
+	p := tea.NewProgram(model, tea.WithAltScreen())
+	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error starting dashboard: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func isGitRepo(dir string) bool {
+	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
+	cmd.Dir = dir
+	return cmd.Run() == nil
+}
+
+func runGitInit(dir string) error {
+	cmd := exec.Command("git", "init")
+	cmd.Dir = dir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 func handleAgent(args []string) {

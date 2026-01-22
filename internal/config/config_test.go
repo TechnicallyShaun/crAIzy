@@ -124,7 +124,7 @@ func TestLoad(t *testing.T) {
 	}
 
 	// Verify default Agents
-	agentNames := []string{"Claude", "Copilot", "Aider"}
+	agentNames := []string{"Claude", "Copilot", "Gemini", "Codex"}
 	if len(cfg.Agents) != len(agentNames) {
 		t.Errorf("Expected %d default Agents, got %d", len(agentNames), len(cfg.Agents))
 	}
