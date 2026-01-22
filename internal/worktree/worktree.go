@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 type Manager struct {
@@ -32,12 +33,13 @@ func (m *Manager) CreateWorktree(project, session string) (string, error) {
 		return "", fmt.Errorf("failed to create worktree base: %w", err)
 	}
 
+	var out bytes.Buffer
 	cmd := exec.Command("git", "worktree", "add", "--force", target)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = &out
+	cmd.Stderr = &out
 	cmd.Dir = repoRoot
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("git worktree add failed: %w", err)
+		return "", fmt.Errorf("git worktree add failed: %w: %s", err, strings.TrimSpace(out.String()))
 	}
 
 	return target, nil
