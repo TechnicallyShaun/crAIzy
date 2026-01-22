@@ -352,6 +352,14 @@ func refreshList(m Model) Model {
 	}
 
 	m.list.SetItems(items)
+	if len(items) > 0 {
+		idx := m.list.Index()
+		if idx < 0 {
+			m.list.Select(0)
+		} else if idx >= len(items) {
+			m.list.Select(len(items) - 1)
+		}
+	}
 	return m
 }
 
