@@ -2,6 +2,9 @@ package dashboard
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -34,6 +37,10 @@ type SessionManager interface {
 	ListSessions() []*tmux.Session
 	SessionExists(name string) bool
 	KillSession(name string) error
+	// AttachSession attaches to a tmux session
+	AttachSession(sessionID string) error
+	// GetAttachCmd returns a command to attach to the session
+	GetAttachCmd(sessionID string) *exec.Cmd
 	// SwitchClient switches the current client to the target session
 	SwitchClient(target string) error
 	// CapturePane returns the last N lines of the target session's output
@@ -220,7 +227,25 @@ func (m Model) View() string {
 		title = fmt.Sprintf("PREVIEW: %s", i.(AgentItem).Name)
 	}
 
-	rightContent := fmt.Sprintf("%s\n\n%s", title, m.previewContent)
+	content := m.previewContent
+	if content == "" {
+		content = "(No output or waiting for agent...)"
+	}
+
+	// Truncate content to fit in the preview pane
+	// Height available = m.height - 3 (list offset) - 2 (border) - 2 (title spacing)
+	// We'll be safe and subtract a bit more
+	maxLines := m.height - 8
+	if maxLines < 1 {
+		maxLines = 1
+	}
+	lines := strings.Split(content, "\n")
+	if len(lines) > maxLines {
+		// Take the last N lines
+		content = strings.Join(lines[len(lines)-maxLines:], "\n")
+	}
+
+	rightContent := fmt.Sprintf("%s\n\n%s", title, content)
 	rightView := previewStyle.Render(rightContent)
 
 	helpStyle := lipgloss.NewStyle().
@@ -274,20 +299,34 @@ func fetchPreviewCmd(tm SessionManager, session string) tea.Cmd {
 }
 
 func attachToSessionCmd(tm SessionManager, agent AgentItem) tea.Cmd {
-	return func() tea.Msg {
-		session := agent.SessionID
-		if session == "" {
-			session = sessionName(agent.Name)
+	session := agent.SessionID
+	if session == "" {
+		session = sessionName(agent.Name)
+	}
+	if !tm.SessionExists(session) {
+		// If creating, we must return a Cmd that produces a Msg, but here we likely want to just start it.
+		// However, attach implies interaction.
+		// For simplicity, let's assume valid session or create it synchronously before attach.
+		_, err := tm.CreateSession(session, agent.Command, "")
+		if err != nil {
+			return func() tea.Msg { return previewResultMsg(fmt.Sprintf("Error creating session: %v", err)) }
 		}
-		if !tm.SessionExists(session) {
-			_, err := tm.CreateSession(session, agent.Command, "")
-			if err != nil {
-				return nil
-			}
-		}
+	}
+
+	// Check if inside tmux
+	if os.Getenv("TMUX") != "" {
 		_ = tm.SwitchClient(session)
 		return tea.Quit
 	}
+
+	// Not in tmux, use tea.ExecProcess
+	c := tm.GetAttachCmd(session)
+	return tea.ExecProcess(c, func(err error) tea.Msg {
+		if err != nil {
+			return previewResultMsg(fmt.Sprintf("Error attaching: %v", err))
+		}
+		return refreshListMsg{}
+	})
 }
 
 func createSessionWithWorktreeCmd(tm SessionManager, wt *worktree.Manager, cfg *config.Config, agent config.Agent, instance string) tea.Cmd {
@@ -346,7 +385,7 @@ func refreshList(m Model) Model {
 					Active:    true,
 					SessionID: sessionID,
 				})
-				break
+				// removed break to allow multiple instances of same agent
 			}
 		}
 	}

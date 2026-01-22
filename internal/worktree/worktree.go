@@ -33,6 +33,24 @@ func (m *Manager) CreateWorktree(project, session string) (string, error) {
 		return "", fmt.Errorf("failed to create worktree base: %w", err)
 	}
 
+	// Cleanup existing directory/worktree if it exists to allow overwrite
+	if _, err := os.Stat(target); err == nil {
+		// Try to remove as worktree first (best effort)
+		rmCmd := exec.Command("git", "worktree", "remove", "--force", target)
+		rmCmd.Dir = repoRoot
+		_ = rmCmd.Run()
+
+		// Ensure directory is deleted
+		if err := os.RemoveAll(target); err != nil {
+			return "", fmt.Errorf("failed to remove existing worktree directory: %w", err)
+		}
+
+		// Prune stale worktree entries
+		pruneCmd := exec.Command("git", "worktree", "prune")
+		pruneCmd.Dir = repoRoot
+		_ = pruneCmd.Run()
+	}
+
 	var out bytes.Buffer
 	cmd := exec.Command("git", "worktree", "add", "--force", "-B", session, target)
 	cmd.Stdout = &out
