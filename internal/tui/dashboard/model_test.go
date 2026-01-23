@@ -179,10 +179,10 @@ func TestUpdate_Attach(t *testing.T) {
 	model := NewModel(cfg, mockTmux)
 	model.list.SetItems([]list.Item{AgentItem{Name: "Claude", Command: "claude", SessionID: sessionName("Claude")}})
 	model.list.Select(0)
-	
+
 	// Set TMUX env var to simulate being inside tmux
 	t.Setenv("TMUX", "/tmp/tmux-1000/default,12345,0")
-	
+
 	msg := tea.KeyMsg{Type: tea.KeyEnter}
 
 	_, cmd := model.Update(msg)
