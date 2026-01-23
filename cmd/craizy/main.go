@@ -6,10 +6,11 @@ import (
 	"os/exec"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/TechnicallyShaun/crAIzy/internal/config"
 	"github.com/TechnicallyShaun/crAIzy/internal/tmux"
 	"github.com/TechnicallyShaun/crAIzy/internal/tui/dashboard"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 const version = "0.1.0"
