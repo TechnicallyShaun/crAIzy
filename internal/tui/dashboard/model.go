@@ -148,78 +148,110 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c":
-			m.quitting = true
-			return m, tea.Quit
-		case "n":
-			m.modal.Show()
-			return m, nil
-		case "k":
-			if selectedItem := m.list.SelectedItem(); selectedItem != nil {
-				agent := selectedItem.(AgentItem)
-				return m, killSessionCmd(m.tmux, agent)
-			}
-		case "enter":
-			if selectedItem := m.list.SelectedItem(); selectedItem != nil {
-				agent := selectedItem.(AgentItem)
-				return m, attachToSessionCmd(m.tmux, agent)
-			}
-		}
+		return m.handleKeyMsg(msg)
 
 	case promptInstanceMsg:
 		// nothing; modal handles input
 
 	case instanceValidatedMsg:
-		m.modal.Hide()
-		return m, tea.Batch(
-			createSessionWithWorktreeCmd(m.tmux, m.worktrees, m.cfg, msg.Agent, msg.Name),
-			// removed refreshListMsg here because it's added at the end of Update
-		)
+		return m.handleInstanceValidated(msg)
 
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-
-		listWidth := msg.Width / 4
-		if listWidth < 24 {
-			listWidth = 24
-		}
-		previewWidth := msg.Width - listWidth - 4
-		if previewWidth < 20 {
-			previewWidth = 20
-		}
-
-		m.list.SetSize(listWidth, msg.Height-3)
-		previewStyle = previewStyle.Width(previewWidth).Height(msg.Height - 3)
+		return m.handleWindowResize(msg)
 
 	case tickMsg:
-		if selectedItem := m.list.SelectedItem(); selectedItem != nil {
-			agent := selectedItem.(AgentItem)
-			cmds = append(cmds, fetchPreviewCmd(m.tmux, agent.SessionID))
-		}
-		cmds = append(cmds, tickCmd(), func() tea.Msg { return refreshListMsg{} })
+		return m.handleTick(cmds)
 
 	case refreshListMsg:
 		m = refreshList(m)
 
 	case previewResultMsg:
-		// Only update if this result matches the currently selected item.
-		// This prevents race conditions where a slow fetch from a previous
-		// selection overwrites the current one.
-		if selectedItem := m.list.SelectedItem(); selectedItem != nil {
-			currentID := selectedItem.(AgentItem).SessionID
-			if msg.SessionID == currentID {
-				m.previewContent = msg.Content
-			}
-		} else if msg.SessionID == "" {
-			// Handle case where nothing is selected but we got a result (unlikely but safe)
-			m.previewContent = msg.Content
-		}
+		m = m.handlePreviewResult(msg)
 	}
 
+	// Handle list updates and selection tracking
+	return m.handleListUpdate(msg, cmds)
+}
+
+// handleKeyMsg processes keyboard input
+func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "q", "ctrl+c":
+		m.quitting = true
+		return m, tea.Quit
+	case "n":
+		m.modal.Show()
+		return m, nil
+	case "k":
+		if selectedItem := m.list.SelectedItem(); selectedItem != nil {
+			agent := selectedItem.(AgentItem)
+			return m, killSessionCmd(m.tmux, agent)
+		}
+	case keyEnter:
+		if selectedItem := m.list.SelectedItem(); selectedItem != nil {
+			agent := selectedItem.(AgentItem)
+			return m, attachToSessionCmd(m.tmux, agent)
+		}
+	}
+	return m, nil
+}
+
+// handleInstanceValidated processes instance validation
+func (m Model) handleInstanceValidated(msg instanceValidatedMsg) (tea.Model, tea.Cmd) {
+	m.modal.Hide()
+	return m, createSessionWithWorktreeCmd(m.tmux, m.worktrees, m.cfg, msg.Agent, msg.Name)
+}
+
+// handleWindowResize processes window resize events
+func (m Model) handleWindowResize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+
+	listWidth := msg.Width / 4
+	if listWidth < 24 {
+		listWidth = 24
+	}
+	previewWidth := msg.Width - listWidth - 4
+	if previewWidth < 20 {
+		previewWidth = 20
+	}
+
+	m.list.SetSize(listWidth, msg.Height-3)
+	previewStyle = previewStyle.Width(previewWidth).Height(msg.Height - 3)
+	return m, nil
+}
+
+// handleTick processes tick events for updating previews
+func (m Model) handleTick(cmds []tea.Cmd) (tea.Model, tea.Cmd) {
+	if selectedItem := m.list.SelectedItem(); selectedItem != nil {
+		agent := selectedItem.(AgentItem)
+		cmds = append(cmds, fetchPreviewCmd(m.tmux, agent.SessionID))
+	}
+	cmds = append(cmds, tickCmd(), func() tea.Msg { return refreshListMsg{} })
+	return m, tea.Batch(cmds...)
+}
+
+// handlePreviewResult processes preview result messages
+func (m Model) handlePreviewResult(msg previewResultMsg) Model {
+	// Only update if this result matches the currently selected item.
+	// This prevents race conditions where a slow fetch from a previous
+	// selection overwrites the current one.
+	if selectedItem := m.list.SelectedItem(); selectedItem != nil {
+		currentID := selectedItem.(AgentItem).SessionID
+		if msg.SessionID == currentID {
+			m.previewContent = msg.Content
+		}
+	} else if msg.SessionID == "" {
+		// Handle case where nothing is selected but we got a result (unlikely but safe)
+		m.previewContent = msg.Content
+	}
+	return m
+}
+
+// handleListUpdate processes list updates and selection tracking
+func (m Model) handleListUpdate(msg tea.Msg, cmds []tea.Cmd) (tea.Model, tea.Cmd) {
 	var listCmd tea.Cmd
-	
+
 	// Track previous selection to detect changes
 	var prevSessionID string
 	if i := m.list.SelectedItem(); i != nil {
@@ -241,28 +273,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if currentSessionID != "" {
 			cmds = append(cmds, fetchPreviewCmd(m.tmux, currentSessionID))
 		}
-	} else if _, ok := msg.(refreshListMsg); ok {
-		// If the list refreshed but selection ID didn't change (e.g. status update),
-		// we still might want to ensure we have the latest preview eventually,
-		// but the tick loop handles that.
-	} else if _, ok := msg.(list.FilterMatchesMsg); ok {
-		// If filtering changed selection
-		if currentSessionID != "" {
-			cmds = append(cmds, fetchPreviewCmd(m.tmux, currentSessionID))
+	} else {
+		// Check if we need to refresh preview based on message type
+		switch msg.(type) {
+		case refreshListMsg:
+			// If the list refreshed but selection ID didn't change (e.g. status update),
+			// we still might want to ensure we have the latest preview eventually,
+			// but the tick loop handles that.
+		case list.FilterMatchesMsg:
+			// If filtering changed selection
+			if currentSessionID != "" {
+				cmds = append(cmds, fetchPreviewCmd(m.tmux, currentSessionID))
+			}
 		}
 	}
 
-	// Always queue a refresh list msg after update to keep list in sync? 
-	// The original code had: func() tea.Msg { return refreshListMsg{} } appended to cmds.
-	// That causes an infinite loop of refreshes if not careful, or at least very high CPU.
-	// The original code:
-	// cmds = append(cmds, listCmd, func() tea.Msg { return refreshListMsg{} })
-	// This seems aggressive. Let's keep it for now if it was working, but maybe restrict it?
-	// Actually, the original code had it in the `switch` for some cases, but also at the end.
-	// Let's restore the end-of-function behavior but cleaner.
-	
 	cmds = append(cmds, func() tea.Msg { return refreshListMsg{} })
-
 	return m, tea.Batch(cmds...)
 }
 
@@ -372,7 +398,9 @@ func attachToSessionCmd(tm SessionManager, agent AgentItem) tea.Cmd {
 		// For simplicity, let's assume valid session or create it synchronously before attach.
 		_, err := tm.CreateSession(session, agent.Command, "")
 		if err != nil {
-			return func() tea.Msg { return previewResultMsg{SessionID: session, Content: fmt.Sprintf("Error creating session: %v", err)} }
+			return func() tea.Msg {
+				return previewResultMsg{SessionID: session, Content: fmt.Sprintf("Error creating session: %v", err)}
+			}
 		}
 	}
 

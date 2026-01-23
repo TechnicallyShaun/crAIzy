@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/TechnicallyShaun/crAIzy/internal/config"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/TechnicallyShaun/crAIzy/internal/config"
 )
 
 // Modal represents a modal dialog for agent selection and instance naming
@@ -53,8 +54,7 @@ func (m Modal) Update(msg tea.Msg) (Modal, tea.Cmd) {
 		return m, nil
 	}
 
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	if msg, ok := msg.(tea.KeyMsg); ok {
 		switch msg.String() {
 		case "up", "k":
 			if m.selected.Name == "" && m.cursor > 0 {
@@ -67,7 +67,7 @@ func (m Modal) Update(msg tea.Msg) (Modal, tea.Cmd) {
 		case "esc":
 			m.Hide()
 			return m, promptInstanceNameCmd() // signal cancel to close modal
-		case "enter":
+		case keyEnter:
 			if m.selected.Name == "" {
 				m.selected = m.agents[m.cursor]
 				return m, promptInstanceNameCmd()
@@ -79,30 +79,36 @@ func (m Modal) Update(msg tea.Msg) (Modal, tea.Cmd) {
 			}
 		default:
 			if m.selected.Name != "" {
-				switch msg.Type {
-				case tea.KeyBackspace, tea.KeyDelete:
-					if len(m.instanceName) > 0 {
-						m.instanceName = m.instanceName[:len(m.instanceName)-1]
-					}
-				case tea.KeySpace:
-					m.instanceName += " "
-				case tea.KeyEnter:
-					name := strings.TrimSpace(m.instanceName)
-					if name != "" {
-						return m, instanceValidatedCmd(name, m.selected)
-					}
-				case tea.KeyEsc:
-					m.Hide()
-					return m, promptInstanceNameCmd()
-				default:
-					if len(msg.Runes) > 0 {
-						m.instanceName += string(msg.Runes)
-					}
-				}
+				return m.handleTextInput(msg)
 			}
 		}
 	}
 
+	return m, nil
+}
+
+// handleTextInput processes text input for instance naming
+func (m Modal) handleTextInput(msg tea.KeyMsg) (Modal, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyBackspace, tea.KeyDelete:
+		if m.instanceName != "" {
+			m.instanceName = m.instanceName[:len(m.instanceName)-1]
+		}
+	case tea.KeySpace:
+		m.instanceName += " "
+	case tea.KeyEnter:
+		name := strings.TrimSpace(m.instanceName)
+		if name != "" {
+			return m, instanceValidatedCmd(name, m.selected)
+		}
+	case tea.KeyEsc:
+		m.Hide()
+		return m, promptInstanceNameCmd()
+	default:
+		if len(msg.Runes) > 0 {
+			m.instanceName += string(msg.Runes)
+		}
+	}
 	return m, nil
 }
 

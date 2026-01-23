@@ -2,6 +2,7 @@ package dashboard
 
 import (
 	"errors"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -76,6 +77,19 @@ func (m *MockSessionManager) CapturePane(target string, lines int) (string, erro
 	return "", nil
 }
 
+func (m *MockSessionManager) AttachSession(sessionID string) error {
+	// Mock implementation - just check if session exists
+	if !m.SessionExists(sessionID) {
+		return errors.New("session does not exist")
+	}
+	return nil
+}
+
+func (m *MockSessionManager) GetAttachCmd(sessionID string) *exec.Cmd {
+	// Mock implementation - return a dummy command
+	return exec.Command("true")
+}
+
 func TestNewModel(t *testing.T) {
 	cfg := &config.Config{
 		ProjectName: "test-project",
@@ -146,8 +160,8 @@ func TestUpdate_PreviewLoop(t *testing.T) {
 	if !ok {
 		t.Fatalf("Expected previewResultMsg, got %T", msg)
 	}
-	if string(resultMsg) != testLogOutput {
-		t.Errorf("Expected log output, got %s", resultMsg)
+	if resultMsg.Content != testLogOutput {
+		t.Errorf("Expected log output, got %s", resultMsg.Content)
 	}
 
 	updatedModel, _ := model.Update(resultMsg)
@@ -165,6 +179,10 @@ func TestUpdate_Attach(t *testing.T) {
 	model := NewModel(cfg, mockTmux)
 	model.list.SetItems([]list.Item{AgentItem{Name: "Claude", Command: "claude", SessionID: sessionName("Claude")}})
 	model.list.Select(0)
+
+	// Set TMUX env var to simulate being inside tmux
+	t.Setenv("TMUX", "/tmp/tmux-1000/default,12345,0")
+
 	msg := tea.KeyMsg{Type: tea.KeyEnter}
 
 	_, cmd := model.Update(msg)
@@ -224,8 +242,8 @@ func TestCreateSessionWithWorktree_AlreadyExists(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected previewResultMsg, got %T", msg)
 	}
-	if !strings.Contains(string(res), "already exists") {
-		t.Fatalf("expected already exists message, got %s", res)
+	if !strings.Contains(res.Content, "already exists") {
+		t.Fatalf("expected already exists message, got %s", res.Content)
 	}
 	if mockTmux.createCalls != 0 {
 		t.Fatalf("expected no create calls, got %d", mockTmux.createCalls)
@@ -244,8 +262,8 @@ func TestCreateSessionWithWorktree_CreateError(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected previewResultMsg, got %T", msg)
 	}
-	if !strings.Contains(string(res), "Error creating session") {
-		t.Fatalf("expected create error message, got %s", res)
+	if !strings.Contains(res.Content, "Error creating session") {
+		t.Fatalf("expected create error message, got %s", res.Content)
 	}
 	if mockTmux.createCalls != 1 {
 		t.Fatalf("expected 1 create call, got %d", mockTmux.createCalls)

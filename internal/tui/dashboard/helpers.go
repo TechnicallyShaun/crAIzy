@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+const (
+	defaultAgentSlug = "agent"
+	keyEnter         = "enter"
+)
+
 func tmuxPrefix() string {
 	prefix := os.Getenv("CRAIZY_TMUX_PREFIX")
 	if prefix == "" {
@@ -25,13 +30,13 @@ func sessionNameWithInstance(agentName, instance string) string {
 func slugify(s string) string {
 	s = strings.TrimSpace(strings.ToLower(s))
 	if s == "" {
-		return "agent"
+		return defaultAgentSlug
 	}
 	re := regexp.MustCompile(`[^a-z0-9]+`)
 	s = re.ReplaceAllString(s, "-")
 	s = strings.Trim(s, "-")
 	if s == "" {
-		return "agent"
+		return defaultAgentSlug
 	}
 	return s
 }

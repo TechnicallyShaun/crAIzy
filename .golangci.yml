@@ -73,6 +73,11 @@ issues:
       linters:
         - gocritic
       text: "hugeParam"
+    # Modal also uses value receivers for consistency with Bubble Tea pattern
+    - path: internal/tui/dashboard/modal\.go
+      linters:
+        - gocritic
+      text: "hugeParam"
 
 run:
   timeout: 5m

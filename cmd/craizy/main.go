@@ -6,10 +6,11 @@ import (
 	"os/exec"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/TechnicallyShaun/crAIzy/internal/config"
 	"github.com/TechnicallyShaun/crAIzy/internal/tmux"
 	"github.com/TechnicallyShaun/crAIzy/internal/tui/dashboard"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 const version = "0.1.0"
@@ -54,7 +55,10 @@ func handleInit(name string) {
 	if !isGitRepo(".") {
 		fmt.Print("No git repository detected. Initialize git here? [y/N]: ")
 		var resp string
-		fmt.Scanln(&resp)
+		if _, err := fmt.Scanln(&resp); err != nil {
+			fmt.Println("\nAborting: git repository is required.")
+			os.Exit(1)
+		}
 		if resp == "y" || resp == "Y" {
 			if err := runGitInit("."); err != nil {
 				fmt.Printf("Error running git init: %v\n", err)
