@@ -1,6 +1,8 @@
 package dashboard
 
 import (
+	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,10 +17,13 @@ const testLogOutput = "Output Log Line 1"
 
 // MockSessionManager implements SessionManager for testing
 type MockSessionManager struct {
-	sessions    map[string]*tmux.Session
-	logs        map[string]string
-	switchedTo  string
-	createCalls int
+	sessions       map[string]*tmux.Session
+	logs           map[string]string
+	switchedTo     string
+	createCalls    int
+	createErr      error
+	lastCreateCwd  string
+	lastCreateName string
 }
 
 func NewMockSessionManager() *MockSessionManager {
@@ -30,6 +35,11 @@ func NewMockSessionManager() *MockSessionManager {
 
 func (m *MockSessionManager) CreateSession(name, command, cwd string) (*tmux.Session, error) {
 	m.createCalls++
+	m.lastCreateCwd = cwd
+	m.lastCreateName = name
+	if m.createErr != nil {
+		return nil, m.createErr
+	}
 	id := name
 	s := &tmux.Session{ID: id, Name: id, Command: command, Active: true}
 	m.sessions[id] = s
@@ -180,5 +190,100 @@ func TestUpdate_Quit(t *testing.T) {
 	}
 	if cmd == nil {
 		t.Error("Expected tea.Quit command")
+	}
+}
+
+func TestCreateSessionWithWorktree_Success(t *testing.T) {
+	cfg := &config.Config{ProjectName: "proj"}
+	mockTmux := NewMockSessionManager()
+	agent := config.Agent{Name: "Claude", Command: "run"}
+
+	msg := createSessionWithWorktreeCmd(mockTmux, nil, cfg, agent, "inst")()
+
+	if _, ok := msg.(refreshListMsg); !ok {
+		t.Fatalf("expected refreshListMsg, got %T", msg)
+	}
+	if mockTmux.createCalls != 1 {
+		t.Fatalf("expected create session call once, got %d", mockTmux.createCalls)
+	}
+	if !mockTmux.SessionExists(sessionNameWithInstance("Claude", "inst")) {
+		t.Fatal("session should exist after creation")
+	}
+}
+
+func TestCreateSessionWithWorktree_AlreadyExists(t *testing.T) {
+	cfg := &config.Config{ProjectName: "proj"}
+	mockTmux := NewMockSessionManager()
+	agent := config.Agent{Name: "Claude", Command: "run"}
+	session := sessionNameWithInstance("Claude", "inst")
+	mockTmux.sessions[session] = &tmux.Session{ID: session, Name: session}
+
+	msg := createSessionWithWorktreeCmd(mockTmux, nil, cfg, agent, "inst")()
+
+	res, ok := msg.(previewResultMsg)
+	if !ok {
+		t.Fatalf("expected previewResultMsg, got %T", msg)
+	}
+	if !strings.Contains(string(res), "already exists") {
+		t.Fatalf("expected already exists message, got %s", res)
+	}
+	if mockTmux.createCalls != 0 {
+		t.Fatalf("expected no create calls, got %d", mockTmux.createCalls)
+	}
+}
+
+func TestCreateSessionWithWorktree_CreateError(t *testing.T) {
+	cfg := &config.Config{ProjectName: "proj"}
+	mockTmux := NewMockSessionManager()
+	mockTmux.createErr = errors.New("boom")
+	agent := config.Agent{Name: "Claude", Command: "run"}
+
+	msg := createSessionWithWorktreeCmd(mockTmux, nil, cfg, agent, "inst")()
+
+	res, ok := msg.(previewResultMsg)
+	if !ok {
+		t.Fatalf("expected previewResultMsg, got %T", msg)
+	}
+	if !strings.Contains(string(res), "Error creating session") {
+		t.Fatalf("expected create error message, got %s", res)
+	}
+	if mockTmux.createCalls != 1 {
+		t.Fatalf("expected 1 create call, got %d", mockTmux.createCalls)
+	}
+}
+
+func TestModal_SelectAgentPromptsForInstance(t *testing.T) {
+	modal := NewModal([]config.Agent{{Name: "Claude"}, {Name: "Copilot"}})
+	modal.Show()
+
+	_, cmd := modal.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if cmd == nil {
+		t.Fatalf("expected command after selecting agent")
+	}
+	if _, ok := cmd().(promptInstanceMsg); !ok {
+		t.Fatalf("expected promptInstanceMsg from modal selection")
+	}
+}
+
+func TestModal_InstanceNameEnterValidates(t *testing.T) {
+	modal := NewModal([]config.Agent{{Name: "Claude"}})
+	modal.Show()
+	modal.selected = modal.agents[0]
+	modal.instanceName = "fix-typo"
+
+	_, cmd := modal.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if cmd == nil {
+		t.Fatalf("expected command when confirming instance")
+	}
+	msg := cmd()
+	v, ok := msg.(instanceValidatedMsg)
+	if !ok {
+		t.Fatalf("expected instanceValidatedMsg, got %T", msg)
+	}
+	if v.Name != "fix-typo" {
+		t.Fatalf("expected name fix-typo, got %s", v.Name)
+	}
+	if v.Agent.Name != "Claude" {
+		t.Fatalf("expected agent Claude, got %s", v.Agent.Name)
 	}
 }

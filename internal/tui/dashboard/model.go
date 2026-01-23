@@ -2,6 +2,9 @@ package dashboard
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -34,6 +37,10 @@ type SessionManager interface {
 	ListSessions() []*tmux.Session
 	SessionExists(name string) bool
 	KillSession(name string) error
+	// AttachSession attaches to a tmux session
+	AttachSession(sessionID string) error
+	// GetAttachCmd returns a command to attach to the session
+	GetAttachCmd(sessionID string) *exec.Cmd
 	// SwitchClient switches the current client to the target session
 	SwitchClient(target string) error
 	// CapturePane returns the last N lines of the target session's output
@@ -147,7 +154,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// nothing; modal handles input
 
 	case instanceValidatedMsg:
-		return m.handleInstanceValidated(msg)
+		m.modal.Hide()
+		return m, tea.Batch(
+			createSessionWithWorktreeCmd(m.tmux, m.worktrees, m.cfg, msg.Agent, msg.Name),
+			// removed refreshListMsg here because it's added at the end of Update
+		)
 
 	case tea.WindowSizeMsg:
 		return m.handleWindowResize(msg)
@@ -159,12 +170,64 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m = refreshList(m)
 
 	case previewResultMsg:
-		m.previewContent = string(msg)
+		// Only update if this result matches the currently selected item.
+		// This prevents race conditions where a slow fetch from a previous
+		// selection overwrites the current one.
+		if selectedItem := m.list.SelectedItem(); selectedItem != nil {
+			currentID := selectedItem.(AgentItem).SessionID
+			if msg.SessionID == currentID {
+				m.previewContent = msg.Content
+			}
+		} else if msg.SessionID == "" {
+			// Handle case where nothing is selected but we got a result (unlikely but safe)
+			m.previewContent = msg.Content
+		}
 	}
 
 	var listCmd tea.Cmd
+	
+	// Track previous selection to detect changes
+	var prevSessionID string
+	if i := m.list.SelectedItem(); i != nil {
+		prevSessionID = i.(AgentItem).SessionID
+	}
+
 	m.list, listCmd = m.list.Update(msg)
-	cmds = append(cmds, listCmd, func() tea.Msg { return refreshListMsg{} })
+	cmds = append(cmds, listCmd)
+
+	// Check if selection changed
+	var currentSessionID string
+	if i := m.list.SelectedItem(); i != nil {
+		currentSessionID = i.(AgentItem).SessionID
+	}
+
+	// If selection changed (or list became empty/non-empty), clear preview and fetch immediately
+	if prevSessionID != currentSessionID {
+		m.previewContent = "" // Clear immediately to avoid stale data
+		if currentSessionID != "" {
+			cmds = append(cmds, fetchPreviewCmd(m.tmux, currentSessionID))
+		}
+	} else if _, ok := msg.(refreshListMsg); ok {
+		// If the list refreshed but selection ID didn't change (e.g. status update),
+		// we still might want to ensure we have the latest preview eventually,
+		// but the tick loop handles that.
+	} else if _, ok := msg.(list.FilterMatchesMsg); ok {
+		// If filtering changed selection
+		if currentSessionID != "" {
+			cmds = append(cmds, fetchPreviewCmd(m.tmux, currentSessionID))
+		}
+	}
+
+	// Always queue a refresh list msg after update to keep list in sync? 
+	// The original code had: func() tea.Msg { return refreshListMsg{} } appended to cmds.
+	// That causes an infinite loop of refreshes if not careful, or at least very high CPU.
+	// The original code:
+	// cmds = append(cmds, listCmd, func() tea.Msg { return refreshListMsg{} })
+	// This seems aggressive. Let's keep it for now if it was working, but maybe restrict it?
+	// Actually, the original code had it in the `switch` for some cases, but also at the end.
+	// Let's restore the end-of-function behavior but cleaner.
+	
+	cmds = append(cmds, func() tea.Msg { return refreshListMsg{} })
 
 	return m, tea.Batch(cmds...)
 }
@@ -243,7 +306,33 @@ func (m Model) View() string {
 		title = fmt.Sprintf("PREVIEW: %s", i.(AgentItem).Name)
 	}
 
-	rightContent := fmt.Sprintf("%s\n\n%s", title, m.previewContent)
+	content := m.previewContent
+	if content == "" {
+		content = "(No output or waiting for agent...)"
+	}
+
+	// Truncate content to fit in the preview pane
+	// Height available = m.height - 3 (list offset) - 2 (border) - 2 (title spacing)
+	// We'll be safe and subtract a bit more
+	maxLines := m.height - 8
+	if maxLines < 1 {
+		maxLines = 1
+	}
+	lines := strings.Split(content, "\n")
+
+	// Trim trailing empty lines to ensure we show actual content
+	for len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "" {
+		lines = lines[:len(lines)-1]
+	}
+
+	if len(lines) > maxLines {
+		// Take the last N lines
+		content = strings.Join(lines[len(lines)-maxLines:], "\n")
+	} else {
+		content = strings.Join(lines, "\n")
+	}
+
+	rightContent := fmt.Sprintf("%s\n\n%s", title, content)
 	rightView := previewStyle.Render(rightContent)
 
 	helpStyle := lipgloss.NewStyle().
@@ -280,37 +369,54 @@ func tickCmd() tea.Cmd {
 }
 
 // previewResultMsg carries the output of CapturePane
-type previewResultMsg string
+type previewResultMsg struct {
+	SessionID string
+	Content   string
+}
 type refreshListMsg struct{}
 
 func fetchPreviewCmd(tm SessionManager, session string) tea.Cmd {
 	return func() tea.Msg {
 		if session == "" || !tm.SessionExists(session) {
-			return previewResultMsg("Agent is offline or idle.")
+			return previewResultMsg{SessionID: session, Content: "Agent is offline or idle."}
 		}
 		content, err := tm.CapturePane(session, 20)
 		if err != nil {
-			return previewResultMsg(fmt.Sprintf("Error fetching preview: %v", err))
+			return previewResultMsg{SessionID: session, Content: fmt.Sprintf("Error fetching preview: %v", err)}
 		}
-		return previewResultMsg(content)
+		return previewResultMsg{SessionID: session, Content: content}
 	}
 }
 
 func attachToSessionCmd(tm SessionManager, agent AgentItem) tea.Cmd {
-	return func() tea.Msg {
-		session := agent.SessionID
-		if session == "" {
-			session = sessionName(agent.Name)
+	session := agent.SessionID
+	if session == "" {
+		session = sessionName(agent.Name)
+	}
+	if !tm.SessionExists(session) {
+		// If creating, we must return a Cmd that produces a Msg, but here we likely want to just start it.
+		// However, attach implies interaction.
+		// For simplicity, let's assume valid session or create it synchronously before attach.
+		_, err := tm.CreateSession(session, agent.Command, "")
+		if err != nil {
+			return func() tea.Msg { return previewResultMsg{SessionID: session, Content: fmt.Sprintf("Error creating session: %v", err)} }
 		}
-		if !tm.SessionExists(session) {
-			_, err := tm.CreateSession(session, agent.Command, "")
-			if err != nil {
-				return nil
-			}
-		}
+	}
+
+	// Check if inside tmux
+	if os.Getenv("TMUX") != "" {
 		_ = tm.SwitchClient(session)
 		return tea.Quit
 	}
+
+	// Not in tmux, use tea.ExecProcess
+	c := tm.GetAttachCmd(session)
+	return tea.ExecProcess(c, func(err error) tea.Msg {
+		if err != nil {
+			return previewResultMsg{SessionID: session, Content: fmt.Sprintf("Error attaching: %v", err)}
+		}
+		return refreshListMsg{}
+	})
 }
 
 func createSessionWithWorktreeCmd(tm SessionManager, wt *worktree.Manager, cfg *config.Config, agent config.Agent, instance string) tea.Cmd {
@@ -318,20 +424,20 @@ func createSessionWithWorktreeCmd(tm SessionManager, wt *worktree.Manager, cfg *
 		session := sessionNameWithInstance(agent.Name, instance)
 
 		if tm.SessionExists(session) {
-			return previewResultMsg(fmt.Sprintf("Session %s already exists", session))
+			return previewResultMsg{SessionID: session, Content: fmt.Sprintf("Session %s already exists", session)}
 		}
 
 		cwd := ""
 		if wt != nil && cfg != nil {
 			path, err := wt.CreateWorktree(cfg.ProjectName, session)
 			if err != nil {
-				return previewResultMsg(fmt.Sprintf("Worktree error: %v", err))
+				return previewResultMsg{SessionID: session, Content: fmt.Sprintf("Worktree error: %v", err)}
 			}
 			cwd = path
 		}
 
 		if _, err := tm.CreateSession(session, agent.Command, cwd); err != nil {
-			return previewResultMsg(fmt.Sprintf("Error creating session: %v", err))
+			return previewResultMsg{SessionID: session, Content: fmt.Sprintf("Error creating session: %v", err)}
 		}
 
 		return refreshListMsg{}
@@ -369,12 +475,20 @@ func refreshList(m Model) Model {
 					Active:    true,
 					SessionID: sessionID,
 				})
-				break
+				// removed break to allow multiple instances of same agent
 			}
 		}
 	}
 
 	m.list.SetItems(items)
+	if len(items) > 0 {
+		idx := m.list.Index()
+		if idx < 0 {
+			m.list.Select(0)
+		} else if idx >= len(items) {
+			m.list.Select(len(items) - 1)
+		}
+	}
 	return m
 }
 

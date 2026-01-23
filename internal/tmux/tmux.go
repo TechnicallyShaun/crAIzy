@@ -41,6 +41,9 @@ func (m *Manager) CreateSession(name, command, cwd string) (*Session, error) {
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
 
+	// Configure status bar to show detach help
+	_ = exec.Command("tmux", "set-option", "-t", name, "status-right", " #[fg=green,bg=black] Detach: Ctrl+b d ").Run()
+
 	session := &Session{
 		ID:      name,
 		Name:    name,
@@ -94,11 +97,16 @@ func (m *Manager) AttachSession(sessionID string) error {
 		return fmt.Errorf("session %s does not exist", sessionID)
 	}
 
-	cmd := exec.Command("tmux", "attach-session", "-t", sessionID)
-	cmd.Stdin = nil
-	cmd.Stdout = nil
-	cmd.Stderr = nil
+	cmd := m.GetAttachCmd(sessionID)
 	return cmd.Run()
+}
+
+// GetAttachCmd returns the command to attach to a session
+func (m *Manager) GetAttachCmd(sessionID string) *exec.Cmd {
+	cmd := exec.Command("tmux", "attach-session", "-t", sessionID)
+	// We do not set Stdin/Stdout/Stderr here because tea.ExecProcess handles it,
+	// or the caller should handle it if running directly.
+	return cmd
 }
 
 // GetSessionContent retrieves the content of a tmux session
@@ -194,8 +202,11 @@ func (m *Manager) CapturePane(target string, lines int) (string, error) {
 		return "", fmt.Errorf("session %s does not exist", target)
 	}
 
-	// #nosec G204 -- target is validated via SessionExists, lines is an integer formatted safely
-	cmd := exec.Command("tmux", "capture-pane", "-t", target, "-p", "-S", fmt.Sprintf("-%d", lines))
+	// -p: print to stdout
+	// -e: include escape sequences (colors)
+	// We capture the visible pane which is most relevant for a preview.
+	// We ignore 'lines' to show the full visible context.
+	cmd := exec.Command("tmux", "capture-pane", "-t", target, "-p", "-e")
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("failed to capture pane: %w", err)
