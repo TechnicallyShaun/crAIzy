@@ -166,70 +166,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m = refreshList(m)
 
 	case previewResultMsg:
-		// Only update if this result matches the currently selected item.
-		// This prevents race conditions where a slow fetch from a previous
-		// selection overwrites the current one.
-		if selectedItem := m.list.SelectedItem(); selectedItem != nil {
-			currentID := selectedItem.(AgentItem).SessionID
-			if msg.SessionID == currentID {
-				m.previewContent = msg.Content
-			}
-		} else if msg.SessionID == "" {
-			// Handle case where nothing is selected but we got a result (unlikely but safe)
-			m.previewContent = msg.Content
-		}
+		m = m.handlePreviewResult(msg)
 	}
 
-	var listCmd tea.Cmd
-
-	// Track previous selection to detect changes
-	var prevSessionID string
-	if i := m.list.SelectedItem(); i != nil {
-		prevSessionID = i.(AgentItem).SessionID
-	}
-
-	m.list, listCmd = m.list.Update(msg)
-	cmds = append(cmds, listCmd)
-
-	// Check if selection changed
-	var currentSessionID string
-	if i := m.list.SelectedItem(); i != nil {
-		currentSessionID = i.(AgentItem).SessionID
-	}
-
-	// If selection changed (or list became empty/non-empty), clear preview and fetch immediately
-	if prevSessionID != currentSessionID {
-		m.previewContent = "" // Clear immediately to avoid stale data
-		if currentSessionID != "" {
-			cmds = append(cmds, fetchPreviewCmd(m.tmux, currentSessionID))
-		}
-	} else {
-		// Check if we need to refresh preview based on message type
-		switch msg.(type) {
-		case refreshListMsg:
-			// If the list refreshed but selection ID didn't change (e.g. status update),
-			// we still might want to ensure we have the latest preview eventually,
-			// but the tick loop handles that.
-		case list.FilterMatchesMsg:
-			// If filtering changed selection
-			if currentSessionID != "" {
-				cmds = append(cmds, fetchPreviewCmd(m.tmux, currentSessionID))
-			}
-		}
-	}
-
-	// Always queue a refresh list msg after update to keep list in sync?
-	// The original code had: func() tea.Msg { return refreshListMsg{} } appended to cmds.
-	// That causes an infinite loop of refreshes if not careful, or at least very high CPU.
-	// The original code:
-	// cmds = append(cmds, listCmd, func() tea.Msg { return refreshListMsg{} })
-	// This seems aggressive. Let's keep it for now if it was working, but maybe restrict it?
-	// Actually, the original code had it in the `switch` for some cases, but also at the end.
-	// Let's restore the end-of-function behavior but cleaner.
-
-	cmds = append(cmds, func() tea.Msg { return refreshListMsg{} })
-
-	return m, tea.Batch(cmds...)
+	// Handle list updates and selection tracking
+	return m.handleListUpdate(msg, cmds)
 }
 
 // handleKeyMsg processes keyboard input
@@ -287,6 +228,67 @@ func (m Model) handleTick(cmds []tea.Cmd) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, fetchPreviewCmd(m.tmux, agent.SessionID))
 	}
 	cmds = append(cmds, tickCmd(), func() tea.Msg { return refreshListMsg{} })
+	return m, tea.Batch(cmds...)
+}
+
+// handlePreviewResult processes preview result messages
+func (m Model) handlePreviewResult(msg previewResultMsg) Model {
+	// Only update if this result matches the currently selected item.
+	// This prevents race conditions where a slow fetch from a previous
+	// selection overwrites the current one.
+	if selectedItem := m.list.SelectedItem(); selectedItem != nil {
+		currentID := selectedItem.(AgentItem).SessionID
+		if msg.SessionID == currentID {
+			m.previewContent = msg.Content
+		}
+	} else if msg.SessionID == "" {
+		// Handle case where nothing is selected but we got a result (unlikely but safe)
+		m.previewContent = msg.Content
+	}
+	return m
+}
+
+// handleListUpdate processes list updates and selection tracking
+func (m Model) handleListUpdate(msg tea.Msg, cmds []tea.Cmd) (tea.Model, tea.Cmd) {
+	var listCmd tea.Cmd
+
+	// Track previous selection to detect changes
+	var prevSessionID string
+	if i := m.list.SelectedItem(); i != nil {
+		prevSessionID = i.(AgentItem).SessionID
+	}
+
+	m.list, listCmd = m.list.Update(msg)
+	cmds = append(cmds, listCmd)
+
+	// Check if selection changed
+	var currentSessionID string
+	if i := m.list.SelectedItem(); i != nil {
+		currentSessionID = i.(AgentItem).SessionID
+	}
+
+	// If selection changed (or list became empty/non-empty), clear preview and fetch immediately
+	if prevSessionID != currentSessionID {
+		m.previewContent = "" // Clear immediately to avoid stale data
+		if currentSessionID != "" {
+			cmds = append(cmds, fetchPreviewCmd(m.tmux, currentSessionID))
+		}
+	} else {
+		// Check if we need to refresh preview based on message type
+		switch msg.(type) {
+		case refreshListMsg:
+			// If the list refreshed but selection ID didn't change (e.g. status update),
+			// we still might want to ensure we have the latest preview eventually,
+			// but the tick loop handles that.
+		case list.FilterMatchesMsg:
+			// If filtering changed selection
+			if currentSessionID != "" {
+				cmds = append(cmds, fetchPreviewCmd(m.tmux, currentSessionID))
+			}
+		}
+	}
+
+	cmds = append(cmds, func() tea.Msg { return refreshListMsg{} })
 	return m, tea.Batch(cmds...)
 }
 
