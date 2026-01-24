@@ -6,8 +6,9 @@ import (
 )
 
 type QuickCommandsModel struct {
-	width  int
-	height int
+	width         int
+	height        int
+	agentSelected bool
 }
 
 func NewQuickCommands() QuickCommandsModel {
@@ -27,15 +28,24 @@ func (m *QuickCommandsModel) SetSize(w, h int) {
 	m.height = h
 }
 
+// SetAgentSelected updates whether an agent is currently selected.
+func (m *QuickCommandsModel) SetAgentSelected(selected bool) {
+	m.agentSelected = selected
+}
+
 func (m QuickCommandsModel) View() string {
 	style := lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(lipgloss.Color("202")). // Orange/Red
 		Width(m.width - 2).
-		Height(m.height) // Already accounted for in dashboard calculation? No, style needs explicit height.
-	// In dashboard.go it was: Height(3) (fixed)
-	// But let's allow dynamic resize if needed, though usually fixed. 
-	// We'll trust the passed height.
+		Height(m.height)
 
-	return style.Render("q - quit")
+	// Build context-aware hints
+	hints := "n - new agent"
+	if m.agentSelected {
+		hints += " • enter - port to agent • k - kill agent"
+	}
+	hints += " • q - quit"
+
+	return style.Render(hints)
 }
