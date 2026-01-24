@@ -60,3 +60,6 @@ __debug_bin*
 # Coverage
 coverage.html
 coverage.txt
+
+# golangci-lint backup files
+*.bck.yml
