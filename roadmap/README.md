@@ -20,6 +20,8 @@ Dependencies: (link to other feature files).
 
 ## Description
 
-## Acceptance Criteria
+## User Stories
+
+- ...
 
 ```
