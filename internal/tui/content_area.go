@@ -5,17 +5,16 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	figure "github.com/common-nighthawk/go-figure"
 )
 
-// ASCII art logo with "AI" emphasized
-const asciiLogo = `               ___   ___
-  ___ _ __    / _ \ |_ _|  _____  _
- / __| '__|  / /_\ \ | |  |_  / | | |
-| (__| |    /  _  | | |   / /| |_| |
- \___|_|    \_/ |_/|___|  /___|\__, |
-                               |___/`
-
 const version = "v0.1.0"
+
+// generateLogo creates the ASCII art logo using go-figure.
+func generateLogo() string {
+	fig := figure.NewFigure("crAIzy", "slant", true)
+	return fig.String()
+}
 
 type ContentAreaModel struct {
 	width          int
@@ -31,7 +30,7 @@ func (m ContentAreaModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m ContentAreaModel) Update(msg tea.Msg) (ContentAreaModel, tea.Cmd) {
+func (m ContentAreaModel) Update(_ tea.Msg) (ContentAreaModel, tea.Cmd) {
 	return m, nil
 }
 
@@ -99,6 +98,7 @@ func (m ContentAreaModel) renderEmptyState() string {
 
 	// Build content
 	tagline := taglineStyle.Render("Using Artificial Intelligence for coding?\nYou must be")
+	asciiLogo := generateLogo()
 	logo := logoStyle.Render(asciiLogo)
 	ver := versionStyle.Render(version)
 
