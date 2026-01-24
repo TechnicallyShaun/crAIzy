@@ -47,20 +47,47 @@ func (m Model) View() string {
 		return "Loading..."
 	}
 
-	tagline := "Using AI to write code?\nYou must be"
+	// Calculate dimensions
+	// Bottom section: 3 lines of text + 2 border lines = 5 lines total
+	bottomHeight := 5
+	mainHeight := m.height - bottomHeight
+	if mainHeight < 0 {
+		mainHeight = 0
+	}
 
-	content := lipgloss.JoinVertical(
-		lipgloss.Center,
-		tagline,
-		logo,
-		"\n(Press q to quit)",
-	)
+	// Side menu: 25% of width
+	sideWidth := int(float64(m.width) * 0.25)
+	// Content takes remaining width
+	contentWidth := m.width - sideWidth
 
-	return lipgloss.Place(
-		m.width,
-		m.height,
-		lipgloss.Center,
-		lipgloss.Center,
-		content,
-	)
+	// Define styles with different border colors
+	sideStyle := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("63")). // Purple/Blue
+		Width(sideWidth - 2). // Account for border
+		Height(mainHeight - 2)
+
+	contentStyle := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("86")). // Cyan
+		Width(contentWidth - 2).
+		Height(mainHeight - 2)
+
+	quickCommandsStyle := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("202")). // Orange/Red
+		Width(m.width - 2).
+		Height(3) // 3 text lines high
+
+	// Render sections
+	sideView := sideStyle.Render("Side Menu")
+	contentView := contentStyle.Render("Content Area")
+	quickCommandsView := quickCommandsStyle.Render("q - quit")
+
+	// Join layout
+	// Top section: Side Menu + Content
+	topSection := lipgloss.JoinHorizontal(lipgloss.Top, sideView, contentView)
+
+	// Full layout: Top Section + Quick Commands
+	return lipgloss.JoinVertical(lipgloss.Left, topSection, quickCommandsView)
 }

@@ -1,0 +1,7 @@
+agents:
+  - name: Claude
+    command: claude --dangerously-skip-permissions
+  - name: Gemini
+    command: gemini --yolo
+  - name: Copilot
+    command: copilot --allow-all-tools
