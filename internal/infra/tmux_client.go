@@ -14,7 +14,7 @@ func NewTmuxClient() *TmuxClient {
 	return &TmuxClient{}
 }
 
-// CreateSession creates a new detached tmux session.
+// CreateSession creates a new detached tmux session with a custom status bar.
 // Command: tmux new-session -d -s {id} -c {workDir} {command}
 func (t *TmuxClient) CreateSession(id, command, workDir string) error {
 	args := []string{"new-session", "-d", "-s", id, "-c", workDir}
@@ -22,7 +22,38 @@ func (t *TmuxClient) CreateSession(id, command, workDir string) error {
 		args = append(args, command)
 	}
 	cmd := exec.Command("tmux", args...)
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	// Configure custom status bar for this session
+	t.configureStatusBar(id)
+	return nil
+}
+
+// configureStatusBar sets up a custom status bar for the tmux session.
+func (t *TmuxClient) configureStatusBar(sessionID string) {
+	// Status bar styling
+	setOptions := [][]string{
+		// Status bar colors
+		{"-t", sessionID, "status-style", "bg=#1a1a2e,fg=#8b8b9e"},
+		// Left side: crAIzy branding + session info
+		{"-t", sessionID, "status-left", "#[fg=#7c3aed,bold] crAIzy #[fg=#8b8b9e]│ #[fg=#a78bfa]#{session_name} "},
+		{"-t", sessionID, "status-left-length", "50"},
+		// Right side: detach hint + time
+		{"-t", sessionID, "status-right", "#[fg=#6b7280]Detach: Ctrl+B, D #[fg=#8b8b9e]│ #[fg=#a78bfa]%H:%M "},
+		{"-t", sessionID, "status-right-length", "40"},
+		// Center the window list
+		{"-t", sessionID, "status-justify", "centre"},
+		// Window styling
+		{"-t", sessionID, "window-status-format", "#[fg=#6b7280] #W "},
+		{"-t", sessionID, "window-status-current-format", "#[fg=#a78bfa,bold] #W "},
+	}
+
+	for _, opt := range setOptions {
+		args := append([]string{"set-option"}, opt...)
+		exec.Command("tmux", args...).Run()
+	}
 }
 
 // KillSession terminates a tmux session.

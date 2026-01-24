@@ -77,9 +77,9 @@ func (m SideMenuModel) Update(msg tea.Msg) (SideMenuModel, tea.Cmd) {
 func (m *SideMenuModel) SetSize(w, h int) {
 	m.width = w
 	m.height = h
-	// Account for border when setting list size
-	m.list.SetWidth(w - 4)
-	m.list.SetHeight(h - 4)
+	// Set list size to match panel
+	m.list.SetWidth(w - 2)
+	m.list.SetHeight(h - 2)
 }
 
 // SelectedAgent returns the currently selected agent, or nil if none selected.
@@ -100,10 +100,8 @@ func (m SideMenuModel) HasAgents() bool {
 
 func (m SideMenuModel) View() string {
 	style := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("63")). // Purple/Blue
-		Width(m.width - 2).                     // Account for border
-		Height(m.height - 2)
+		Width(m.width).
+		Height(m.height)
 
 	if len(m.agents) == 0 {
 		emptyStyle := lipgloss.NewStyle().

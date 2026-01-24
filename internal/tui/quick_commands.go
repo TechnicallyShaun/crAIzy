@@ -34,12 +34,6 @@ func (m *QuickCommandsModel) SetAgentSelected(selected bool) {
 }
 
 func (m QuickCommandsModel) View() string {
-	style := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("202")). // Orange/Red
-		Width(m.width - 2).
-		Height(m.height)
-
 	// Build context-aware hints
 	hints := "n - new agent"
 	if m.agentSelected {
@@ -47,5 +41,17 @@ func (m QuickCommandsModel) View() string {
 	}
 	hints += " • q - quit"
 
-	return style.Render(hints)
+	// Style: no border, grey text, centered horizontally, aligned to bottom
+	textStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("245")). // Grey text
+		Width(m.width).
+		Align(lipgloss.Center)
+
+	// Align content to bottom of the allocated height
+	containerStyle := lipgloss.NewStyle().
+		Width(m.width).
+		Height(m.height).
+		AlignVertical(lipgloss.Bottom)
+
+	return containerStyle.Render(textStyle.Render(hints))
 }
