@@ -45,11 +45,11 @@ As an agent, I can send a message to another agent (or human) using the CLI.
   ```go
   type Message struct {
       ID          string
-      From        string     // agent ID or "human"
-      To          string     // agent ID or "human"
+      From        string     // tmux session name
+      To          string     // tmux session name or "human"
       Type        string     // question, answer, assignment, completion, status, info
       Content     string
-      WorkItemID  *string    // optional context reference
+      RelatedWork *string    // optional work item reference (string for now)
       Read        bool
       CreatedAt   time.Time
       ReadAt      *time.Time
@@ -69,16 +69,16 @@ As an agent, I can send a message to another agent (or human) using the CLI.
       agents IAgentStore
   }
 
-  func (s *MessageService) Send(from, to, msgType, content string, workItemID *string) (*Message, error) {
+  func (s *MessageService) Send(from, to, msgType, content string, relatedWork *string) (*Message, error) {
       msg := &Message{
-          ID:         uuid(),
-          From:       from,
-          To:         to,
-          Type:       msgType,
-          Content:    content,
-          WorkItemID: workItemID,
-          Read:       false,
-          CreatedAt:  time.Now(),
+          ID:          uuid(),
+          From:        from,
+          To:          to,
+          Type:        msgType,
+          Content:     content,
+          RelatedWork: relatedWork,
+          Read:        false,
+          CreatedAt:   time.Now(),
       }
 
       // 1. Persist to DB
@@ -216,7 +216,7 @@ As an agent (or human), I can read a specific message and mark it as read.
   To:      worker-001
   Type:    assignment
   Time:    2024-01-24 10:30:00
-  Context: work-item-123
+  Related: feature-oauth-login
 
   Content:
   ─────────────────────────────────
@@ -365,11 +365,11 @@ CLI/TUI ──► domain.MessageService.Send() ──► IMessageStore.Save()
 ```sql
 CREATE TABLE messages (
     id TEXT PRIMARY KEY,
-    from_agent TEXT NOT NULL,          -- sender ID or "human"
-    to_agent TEXT NOT NULL,            -- recipient ID or "human"
-    type TEXT NOT NULL,                -- question, answer, assignment, etc.
+    from_agent TEXT NOT NULL,          -- tmux session name
+    to_agent TEXT NOT NULL,            -- tmux session name or "human"
+    type TEXT NOT NULL,                -- question, answer, assignment, completion, status, info
     content TEXT NOT NULL,
-    work_item_id TEXT,                 -- optional FK to work_items
+    related_work TEXT,                 -- optional work item reference (string for now)
     read BOOLEAN DEFAULT FALSE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     read_at DATETIME
@@ -394,7 +394,10 @@ None - all resolved.
 
 ## Out of Scope
 
-- Reply threading (messages are flat for now)
+- Reply threading (see `roadmap/visions/messaging-future.md`)
+- Reserved "director" recipient (see `roadmap/visions/messaging-future.md`)
+- From validation (sender exists as agent or "human")
+- Thread property inheritance
 - Attachments
 - TUI inbox UI (future feature)
 - Web UI (future feature)
