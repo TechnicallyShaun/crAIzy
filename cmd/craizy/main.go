@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/TechnicallyShaun/crAIzy/internal/tui"
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/TechnicallyShaun/crAIzy/internal/tui"
 )
 
 func main() {

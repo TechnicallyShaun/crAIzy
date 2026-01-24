@@ -5,16 +5,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// ASCII art for "crAIzy"
-const logo = `
-               _    ___            
-   ___ _ __   / \  |_ _|_____   _  
-  / __| '__| / _ \  | ||_  / | | | 
- | (__| |   / ___ \ | | / /| |_| | 
-  \___|_|  /_/   \_\___\___|\__, | 
-                            |___/  
-`
-
 type Model struct {
 	width  int
 	height int
@@ -64,7 +54,7 @@ func (m Model) View() string {
 	sideStyle := lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(lipgloss.Color("63")). // Purple/Blue
-		Width(sideWidth - 2). // Account for border
+		Width(sideWidth - 2).                   // Account for border
 		Height(mainHeight - 2)
 
 	contentStyle := lipgloss.NewStyle().
