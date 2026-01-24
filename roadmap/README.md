@@ -12,16 +12,39 @@ These ideas are to be fleshed out and formed into the planned features below.
 
 Fully described features are to be saved in (Features/)[./features/]. Features have a strict specific format.
 
-```
+```markdown
+Epic: {epic name}
 
 # Feature Title
 
-Dependencies: (link to other feature files).
+Dependencies: (link to other feature files, or 'none').
 
 ## Description
 
-## User Stories
+{Brief overview of what this feature accomplishes}
 
-- ...
+## Stories
 
+### Story Title
+
+{User story in "As a user, when X, then Y" format}
+
+#### Technical / Architecture
+
+- Implementation details
+- Interfaces and method signatures
+- Data structures
+- Q: {Open questions}
+
+### Another Story
+
+...
+
+## Open Questions
+
+- Consolidated list of unresolved questions
+
+## Out of Scope
+
+- Things explicitly not included in this feature
 ```
