@@ -1,21 +1,16 @@
 package tui
 
 import (
+	"time"
+
 	"github.com/TechnicallyShaun/crAIzy/internal/config"
 	"github.com/TechnicallyShaun/crAIzy/internal/domain"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-// ASCII art for "crAIzy"
-const logo = `
-               _    ___
-   ___ _ __   / \  |_ _|_____   _
-  / __| '__| / _ \  | ||_  / | | |
- | (__| |   / ___ \ | | / /| |_| |
-  \___|_|  /_/   \_\___\___|\__, |
-                            |___/
-`
+// PreviewPollInterval is how often to poll for preview updates.
+const PreviewPollInterval = 2 * time.Second
 
 type Model struct {
 	width         int
@@ -25,6 +20,7 @@ type Model struct {
 	quickCommands QuickCommandsModel
 	modal         Modal
 	agentService  *domain.AgentService
+	isPortedIn    bool
 }
 
 func NewModel(agentService *domain.AgentService) Model {
@@ -58,10 +54,44 @@ func (m Model) refreshAgents() tea.Cmd {
 	}
 }
 
+// pollPreview returns a command that ticks for preview polling.
+func (m Model) pollPreview() tea.Cmd {
+	return tea.Tick(PreviewPollInterval, func(t time.Time) tea.Msg {
+		return PreviewTickMsg(t)
+	})
+}
+
+// capturePreview returns a command that captures output from the selected agent.
+func (m Model) capturePreview() tea.Cmd {
+	agent := m.sideMenu.SelectedAgent()
+	if agent == nil || m.agentService == nil {
+		return nil
+	}
+	sessionID := agent.ID
+	lines := m.contentArea.AvailableLines()
+	return func() tea.Msg {
+		content, _ := m.agentService.CaptureOutput(sessionID, lines)
+		return PreviewUpdatedMsg{SessionID: sessionID, Content: content}
+	}
+}
+
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	case PreviewTickMsg:
+		// Skip capture if ported into a session, but continue polling
+		if m.isPortedIn {
+			return m, m.pollPreview()
+		}
+		// Capture and continue polling
+		return m, tea.Batch(m.capturePreview(), m.pollPreview())
+
+	case PreviewUpdatedMsg:
+		// Update content area with new preview
+		m.contentArea.SetPreview(msg.Content)
+		return m, nil
+
 	case CloseModalMsg:
 		_ = msg // Suppress unused variable error
 		m.modal.Close()
@@ -92,11 +122,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 		// Update quick commands based on selection state
 		m.quickCommands.SetAgentSelected(m.sideMenu.HasAgents())
+
+		// Start polling if agents exist, clear preview if none
+		if len(msg.Agents) > 0 {
+			cmds = append(cmds, m.capturePreview(), m.pollPreview())
+		} else {
+			m.contentArea.SetPreview("")
+		}
 		return m, tea.Batch(cmds...)
 
 	case domain.AgentDetachedMsg:
-		// Returned from tmux session, refresh the agent list
-		return m, m.refreshAgents()
+		// Returned from tmux session, resume normal operation
+		m.isPortedIn = false
+		return m, tea.Batch(m.refreshAgents(), m.capturePreview(), m.pollPreview())
 	}
 
 	if m.modal.IsOpen() {
@@ -145,6 +183,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			// Attach to selected agent
 			if agent := m.sideMenu.SelectedAgent(); agent != nil && m.agentService != nil {
+				m.isPortedIn = true
 				return m, m.agentService.Attach(agent.ID)
 			}
 
@@ -163,6 +202,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 			// Update quick commands after navigation
 			m.quickCommands.SetAgentSelected(m.sideMenu.SelectedAgent() != nil)
+			// Immediately capture preview for new selection
+			cmds = append(cmds, m.capturePreview())
 		}
 	}
 

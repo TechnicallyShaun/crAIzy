@@ -100,6 +100,11 @@ func (s *AgentService) Exists(sessionID string) bool {
 	return s.store.Exists(sessionID)
 }
 
+// CaptureOutput captures the last N lines from an agent's tmux pane.
+func (s *AgentService) CaptureOutput(sessionID string, lines int) (string, error) {
+	return s.tmux.CapturePaneOutput(sessionID, lines)
+}
+
 // Reconcile synchronizes the store with actual tmux sessions.
 // It marks agents as terminated if their tmux session no longer exists,
 // and kills orphaned tmux sessions that aren't in the store.

@@ -2,6 +2,7 @@ package infra
 
 import (
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -62,4 +63,12 @@ func (t *TmuxClient) AttachCmd(id string) *exec.Cmd {
 func (t *TmuxClient) SessionExists(id string) bool {
 	cmd := exec.Command("tmux", "has-session", "-t", id)
 	return cmd.Run() == nil
+}
+
+// CapturePaneOutput captures the last N lines from a tmux pane.
+// Command: tmux capture-pane -t {id} -p -l {lines}
+func (t *TmuxClient) CapturePaneOutput(sessionID string, lines int) (string, error) {
+	cmd := exec.Command("tmux", "capture-pane", "-t", sessionID, "-p", "-l", strconv.Itoa(lines))
+	output, err := cmd.Output()
+	return string(output), err
 }

@@ -18,6 +18,9 @@ type ITmuxClient interface {
 
 	// SessionExists checks if a tmux session exists.
 	SessionExists(id string) bool
+
+	// CapturePaneOutput captures the last N lines from a tmux pane.
+	CapturePaneOutput(sessionID string, lines int) (string, error)
 }
 
 // IAgentStore defines the interface for agent persistence.

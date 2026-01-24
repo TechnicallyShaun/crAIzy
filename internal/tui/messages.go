@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"time"
+
 	"github.com/TechnicallyShaun/crAIzy/internal/config"
 	"github.com/TechnicallyShaun/crAIzy/internal/domain"
 )
@@ -22,4 +24,13 @@ type AgentCreatedMsg struct {
 // AgentsUpdatedMsg signals that the agent list has changed and UI should refresh.
 type AgentsUpdatedMsg struct {
 	Agents []*domain.Agent
+}
+
+// PreviewTickMsg signals that it's time to poll for preview updates.
+type PreviewTickMsg time.Time
+
+// PreviewUpdatedMsg carries updated preview content from a tmux pane.
+type PreviewUpdatedMsg struct {
+	SessionID string
+	Content   string
 }
