@@ -16,30 +16,68 @@ const logo = `
 `
 
 type Model struct {
-	width  int
-	height int
+	width         int
+	height        int
+	sideMenu      SideMenuModel
+	contentArea   ContentAreaModel
+	quickCommands QuickCommandsModel
 }
 
 func NewModel() Model {
-	return Model{}
+	return Model{
+		sideMenu:      NewSideMenu(),
+		contentArea:   NewContentArea(),
+		quickCommands: NewQuickCommands(),
+	}
 }
 
 func (m Model) Init() tea.Cmd {
-	return nil
+	return tea.Batch(
+		m.sideMenu.Init(),
+		m.contentArea.Init(),
+		m.quickCommands.Init(),
+	)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+
+		// Calculate dimensions
+		bottomHeight := 5 // 3 lines text + 2 border
+		mainHeight := m.height - bottomHeight
+		if mainHeight < 0 {
+			mainHeight = 0
+		}
+
+		sideWidth := int(float64(m.width) * 0.25)
+		contentWidth := m.width - sideWidth
+
+		m.sideMenu.SetSize(sideWidth, mainHeight)
+		m.contentArea.SetSize(contentWidth, mainHeight)
+		// Quick commands height is internal to the component style (3), 
+		// but we pass it anyway or the component expects just width?
+		// In my quick_commands.go I implemented SetSize to set m.height and View uses m.height.
+		// Original style was Height(3). So I should pass 3.
+		m.quickCommands.SetSize(m.width, 3)
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		}
 	}
-	return m, nil
+
+	// In a real app we would pass msg to children here
+	// m.sideMenu, cmd = m.sideMenu.Update(msg)
+	// cmds = append(cmds, cmd)
+	// ...
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m Model) View() string {
@@ -47,42 +85,10 @@ func (m Model) View() string {
 		return "Loading..."
 	}
 
-	// Calculate dimensions
-	// Bottom section: 3 lines of text + 2 border lines = 5 lines total
-	bottomHeight := 5
-	mainHeight := m.height - bottomHeight
-	if mainHeight < 0 {
-		mainHeight = 0
-	}
-
-	// Side menu: 25% of width
-	sideWidth := int(float64(m.width) * 0.25)
-	// Content takes remaining width
-	contentWidth := m.width - sideWidth
-
-	// Define styles with different border colors
-	sideStyle := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("63")). // Purple/Blue
-		Width(sideWidth - 2). // Account for border
-		Height(mainHeight - 2)
-
-	contentStyle := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("86")). // Cyan
-		Width(contentWidth - 2).
-		Height(mainHeight - 2)
-
-	quickCommandsStyle := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("202")). // Orange/Red
-		Width(m.width - 2).
-		Height(3) // 3 text lines high
-
 	// Render sections
-	sideView := sideStyle.Render("Side Menu")
-	contentView := contentStyle.Render("Content Area")
-	quickCommandsView := quickCommandsStyle.Render("q - quit")
+	sideView := m.sideMenu.View()
+	contentView := m.contentArea.View()
+	quickCommandsView := m.quickCommands.View()
 
 	// Join layout
 	// Top section: Side Menu + Content
