@@ -11,9 +11,41 @@ import (
 const version = "v0.1.0"
 
 // generateLogo creates the ASCII art logo using go-figure.
+// Returns the logo with normalized whitespace for consistent alignment.
 func generateLogo() string {
 	fig := figure.NewFigure("crAIzy", "slant", true)
-	return fig.String()
+	raw := fig.String()
+
+	// Trim trailing whitespace from each line and find the longest line
+	lines := strings.Split(raw, "\n")
+	maxLen := 0
+	for i, line := range lines {
+		lines[i] = strings.TrimRight(line, " ")
+		if len(lines[i]) > maxLen {
+			maxLen = len(lines[i])
+		}
+	}
+
+	// Find minimum leading whitespace across non-empty lines
+	minLeading := maxLen
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		leading := len(line) - len(strings.TrimLeft(line, " "))
+		if leading < minLeading {
+			minLeading = leading
+		}
+	}
+
+	// Remove common leading whitespace from all lines
+	for i, line := range lines {
+		if len(line) >= minLeading {
+			lines[i] = line[minLeading:]
+		}
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 type ContentAreaModel struct {
@@ -84,11 +116,9 @@ func (m ContentAreaModel) renderEmptyState() string {
 		Align(lipgloss.Center).
 		Width(innerWidth)
 
-	// Style for logo (cyan to match border)
+	// Style for logo (cyan to match border) - no centering, we'll pad manually
 	logoStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("86")).
-		Align(lipgloss.Center).
-		Width(innerWidth)
+		Foreground(lipgloss.Color("86"))
 
 	// Style for version
 	versionStyle := lipgloss.NewStyle().
@@ -99,7 +129,25 @@ func (m ContentAreaModel) renderEmptyState() string {
 	// Build content
 	tagline := taglineStyle.Render("Using Artificial Intelligence for coding?\nYou must be")
 	asciiLogo := generateLogo()
-	logo := logoStyle.Render(asciiLogo)
+
+	// Center the logo block manually by adding left padding
+	logoLines := strings.Split(asciiLogo, "\n")
+	logoWidth := 0
+	for _, line := range logoLines {
+		if len(line) > logoWidth {
+			logoWidth = len(line)
+		}
+	}
+	logoPadding := (innerWidth - logoWidth) / 2
+	if logoPadding < 0 {
+		logoPadding = 0
+	}
+	paddedLogo := make([]string, len(logoLines))
+	for i, line := range logoLines {
+		paddedLogo[i] = strings.Repeat(" ", logoPadding) + line
+	}
+	logo := logoStyle.Render(strings.Join(paddedLogo, "\n"))
+
 	ver := versionStyle.Render(version)
 
 	// Calculate vertical spacing
