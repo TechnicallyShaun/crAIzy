@@ -33,6 +33,7 @@ func NewAgentSelector(agents []config.Agent, width, height int) AgentSelectorMod
 	l.Title = "Select an Agent"
 	l.SetShowHelp(false)
 	l.SetFilteringEnabled(false) // Simple selection for now
+	l.KeyMap.Quit.SetEnabled(false) // Prevent 'q' from quitting - handled by dashboard only
 
 	return AgentSelectorModel{
 		list:   l,
