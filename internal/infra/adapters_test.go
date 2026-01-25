@@ -66,7 +66,7 @@ func TestWireAdapters_AgentCreated(t *testing.T) {
 		store := NewMemoryAgentStore()
 		tmux := newMockTmux()
 
-		WireAdapters(dispatcher, store, tmux)
+		WireAdapters(dispatcher, store, tmux, nil)
 
 		agent := &domain.Agent{
 			ID:        "test-agent",
@@ -101,7 +101,7 @@ func TestWireAdapters_AgentCreated(t *testing.T) {
 		tmux := newMockTmux()
 		tmux.createErr = errors.New("tmux error")
 
-		WireAdapters(dispatcher, store, tmux)
+		WireAdapters(dispatcher, store, tmux, nil)
 
 		agent := &domain.Agent{
 			ID:        "test-agent",
@@ -128,7 +128,7 @@ func TestWireAdapters_AgentKilled(t *testing.T) {
 		store := NewMemoryAgentStore()
 		tmux := newMockTmux()
 
-		WireAdapters(dispatcher, store, tmux)
+		WireAdapters(dispatcher, store, tmux, nil)
 
 		// Pre-populate store and tmux
 		agent := &domain.Agent{

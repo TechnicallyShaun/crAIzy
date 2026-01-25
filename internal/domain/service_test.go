@@ -74,7 +74,7 @@ func TestAgentService_Create(t *testing.T) {
 		store := newTestStore()
 		tmux := &mockTmuxClient{sessions: make(map[string]bool)}
 		dispatcher := &mockDispatcher{}
-		svc := NewAgentService(tmux, store, dispatcher, "testproj", "/tmp")
+		svc := NewAgentService(tmux, store, dispatcher, nil, "testproj", "/tmp")
 
 		agent, err := svc.Create("claude", "task1", "echo hello")
 
@@ -100,7 +100,7 @@ func TestAgentService_Create(t *testing.T) {
 
 		tmux := &mockTmuxClient{sessions: make(map[string]bool)}
 		dispatcher := &mockDispatcher{}
-		svc := NewAgentService(tmux, store, dispatcher, "testproj", "/tmp")
+		svc := NewAgentService(tmux, store, dispatcher, nil, "testproj", "/tmp")
 
 		_, err := svc.Create("claude", "task1", "echo hello")
 
@@ -120,7 +120,7 @@ func TestAgentService_Create(t *testing.T) {
 
 		tmux := &mockTmuxClient{sessions: make(map[string]bool)}
 		dispatcher := &mockDispatcher{}
-		svc := NewAgentService(tmux, store, dispatcher, "testproj", "/tmp")
+		svc := NewAgentService(tmux, store, dispatcher, nil, "testproj", "/tmp")
 
 		agent, err := svc.Create("claude", "task1", "echo hello")
 
@@ -143,7 +143,7 @@ func TestAgentService_List(t *testing.T) {
 
 		tmux := &mockTmuxClient{sessions: make(map[string]bool)}
 		dispatcher := &mockDispatcher{}
-		svc := NewAgentService(tmux, store, dispatcher, "proj1", "/tmp")
+		svc := NewAgentService(tmux, store, dispatcher, nil, "proj1", "/tmp")
 
 		agents := svc.List()
 
@@ -165,7 +165,7 @@ func TestAgentService_Reconcile(t *testing.T) {
 
 		tmux := &mockTmuxClient{sessions: make(map[string]bool)} // No sessions
 		dispatcher := &mockDispatcher{}
-		svc := NewAgentService(tmux, store, dispatcher, "proj", "/tmp")
+		svc := NewAgentService(tmux, store, dispatcher, nil, "proj", "/tmp")
 
 		err := svc.Reconcile()
 
@@ -185,7 +185,7 @@ func TestAgentService_Reconcile(t *testing.T) {
 
 		tmux := &mockTmuxClient{sessions: make(map[string]bool)}
 		dispatcher := &mockDispatcher{}
-		svc := NewAgentService(tmux, store, dispatcher, "proj", "/tmp")
+		svc := NewAgentService(tmux, store, dispatcher, nil, "proj", "/tmp")
 
 		err := svc.Reconcile()
 
@@ -208,7 +208,7 @@ func TestAgentService_Reconcile(t *testing.T) {
 			},
 		}
 		dispatcher := &mockDispatcher{}
-		svc := NewAgentService(tmux, store, dispatcher, "proj", "/tmp")
+		svc := NewAgentService(tmux, store, dispatcher, nil, "proj", "/tmp")
 
 		err := svc.Reconcile()
 
@@ -228,7 +228,7 @@ func TestAgentService_Reconcile(t *testing.T) {
 			listErr:  exec.ErrNotFound,
 		}
 		dispatcher := &mockDispatcher{}
-		svc := NewAgentService(tmux, store, dispatcher, "proj", "/tmp")
+		svc := NewAgentService(tmux, store, dispatcher, nil, "proj", "/tmp")
 
 		err := svc.Reconcile()
 
@@ -244,7 +244,7 @@ func TestAgentService_Kill(t *testing.T) {
 		store := newTestStore()
 		tmux := &mockTmuxClient{sessions: make(map[string]bool)}
 		dispatcher := &mockDispatcher{}
-		svc := NewAgentService(tmux, store, dispatcher, "proj", "/tmp")
+		svc := NewAgentService(tmux, store, dispatcher, nil, "proj", "/tmp")
 
 		_ = svc.Kill("some-session")
 

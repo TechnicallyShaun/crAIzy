@@ -39,10 +39,10 @@ func (s *SQLiteAgentStore) Close() error {
 // Add stores a new agent.
 func (s *SQLiteAgentStore) Add(agent *domain.Agent) error {
 	_, err := s.db.Exec(`
-		INSERT INTO agents (id, project, agent_type, name, command, work_dir, status, created_at, terminated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO agents (id, project, agent_type, name, command, work_dir, status, created_at, terminated_at, branch, base_branch)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`, agent.ID, agent.Project, agent.AgentType, agent.Name, agent.Command, agent.WorkDir,
-		string(agent.Status), agent.CreatedAt, agent.TerminatedAt)
+		string(agent.Status), agent.CreatedAt, agent.TerminatedAt, agent.Branch, agent.BaseBranch)
 	if err != nil {
 		return fmt.Errorf("failed to insert agent: %w", err)
 	}
@@ -61,7 +61,7 @@ func (s *SQLiteAgentStore) Remove(id string) error {
 // List returns all stored agents.
 func (s *SQLiteAgentStore) List() []*domain.Agent {
 	rows, err := s.db.Query(`
-		SELECT id, project, agent_type, name, command, work_dir, status, created_at, terminated_at
+		SELECT id, project, agent_type, name, command, work_dir, status, created_at, terminated_at, branch, base_branch
 		FROM agents
 		ORDER BY created_at DESC
 	`)
@@ -75,9 +75,11 @@ func (s *SQLiteAgentStore) List() []*domain.Agent {
 		agent := &domain.Agent{}
 		var status string
 		var terminatedAt sql.NullTime
+		var branch, baseBranch sql.NullString
 		err := rows.Scan(
 			&agent.ID, &agent.Project, &agent.AgentType, &agent.Name,
 			&agent.Command, &agent.WorkDir, &status, &agent.CreatedAt, &terminatedAt,
+			&branch, &baseBranch,
 		)
 		if err != nil {
 			continue
@@ -85,6 +87,12 @@ func (s *SQLiteAgentStore) List() []*domain.Agent {
 		agent.Status = domain.AgentStatus(status)
 		if terminatedAt.Valid {
 			agent.TerminatedAt = &terminatedAt.Time
+		}
+		if branch.Valid {
+			agent.Branch = branch.String
+		}
+		if baseBranch.Valid {
+			agent.BaseBranch = baseBranch.String
 		}
 		agents = append(agents, agent)
 	}
@@ -96,12 +104,14 @@ func (s *SQLiteAgentStore) Get(id string) *domain.Agent {
 	agent := &domain.Agent{}
 	var status string
 	var terminatedAt sql.NullTime
+	var branch, baseBranch sql.NullString
 	err := s.db.QueryRow(`
-		SELECT id, project, agent_type, name, command, work_dir, status, created_at, terminated_at
+		SELECT id, project, agent_type, name, command, work_dir, status, created_at, terminated_at, branch, base_branch
 		FROM agents WHERE id = ?
 	`, id).Scan(
 		&agent.ID, &agent.Project, &agent.AgentType, &agent.Name,
 		&agent.Command, &agent.WorkDir, &status, &agent.CreatedAt, &terminatedAt,
+		&branch, &baseBranch,
 	)
 	if err != nil {
 		return nil
@@ -109,6 +119,12 @@ func (s *SQLiteAgentStore) Get(id string) *domain.Agent {
 	agent.Status = domain.AgentStatus(status)
 	if terminatedAt.Valid {
 		agent.TerminatedAt = &terminatedAt.Time
+	}
+	if branch.Valid {
+		agent.Branch = branch.String
+	}
+	if baseBranch.Valid {
+		agent.BaseBranch = baseBranch.String
 	}
 	return agent
 }

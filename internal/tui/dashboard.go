@@ -97,6 +97,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.modal.Close()
 		return m, nil
 
+	case KillConfirmResultMsg:
+		m.modal.Close()
+		if msg.Choice == KillConfirmCancel {
+			return m, nil
+		}
+		if m.agentService != nil {
+			discardChanges := msg.Choice == KillConfirmDiscard
+			_ = m.agentService.ForceKill(msg.SessionID, discardChanges)
+		}
+		return m, m.refreshAgents()
+
+	case MergeResultMsg:
+		// Show merge result modal
+		modal := NewMergeResultModal(msg.AgentName, msg.Success, msg.Stashed, msg.ConflictErr, m.width, m.height)
+		m.modal.Open(modal)
+		return m, nil
+
 	case AgentSelectedMsg:
 		// Transition to name input step
 		nameInput := NewNameInput(msg.Agent, m.width, m.height)
@@ -190,8 +207,39 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "k":
 			// Kill selected agent
 			if agent := m.sideMenu.SelectedAgent(); agent != nil && m.agentService != nil {
+				// Check for uncommitted changes
+				hasUncommitted, err := m.agentService.CheckKill(agent.ID)
+				if err == nil && hasUncommitted {
+					// Show confirmation modal
+					modal := NewKillConfirmModal(agent.ID, agent.Name, m.width, m.height)
+					m.modal.Open(modal)
+					return m, nil
+				}
+				// No uncommitted changes, kill directly
 				_ = m.agentService.Kill(agent.ID)
 				return m, m.refreshAgents()
+			}
+
+		case "m":
+			// Merge selected agent's branch
+			if agent := m.sideMenu.SelectedAgent(); agent != nil && m.agentService != nil {
+				agentName := agent.Name
+				return m, func() tea.Msg {
+					result, err := m.agentService.MergeAgent(agent.ID)
+					if err != nil {
+						return MergeResultMsg{
+							AgentName:   agentName,
+							Success:     false,
+							ConflictErr: err,
+						}
+					}
+					return MergeResultMsg{
+						AgentName:   agentName,
+						Success:     result.Success,
+						Stashed:     result.Stashed,
+						ConflictErr: result.ConflictErr,
+					}
+				}
 			}
 		}
 

@@ -34,3 +34,26 @@ type PreviewUpdatedMsg struct {
 	SessionID string
 	Content   string
 }
+
+// KillConfirmChoice represents the user's choice in the kill confirmation modal.
+type KillConfirmChoice int
+
+const (
+	KillConfirmCancel KillConfirmChoice = iota
+	KillConfirmKeep
+	KillConfirmDiscard
+)
+
+// KillConfirmResultMsg is sent when the user makes a choice in the kill confirmation modal.
+type KillConfirmResultMsg struct {
+	SessionID string
+	Choice    KillConfirmChoice
+}
+
+// MergeResultMsg is sent when a merge operation completes.
+type MergeResultMsg struct {
+	AgentName   string
+	Success     bool
+	Stashed     bool
+	ConflictErr error
+}

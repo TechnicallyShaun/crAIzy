@@ -1,4 +1,4 @@
-.PHONY: all build test clean install lint fmt vet
+.PHONY: all build test clean install install-dev lint fmt vet
 
 # Binary name
 BINARY_NAME=craizy
@@ -71,6 +71,11 @@ install: build
 	cp $(BINARY_PATH) $(GOPATH)/bin/$(BINARY_NAME)
 	@echo "Installed to: $(GOPATH)/bin/$(BINARY_NAME)"
 
+install-dev:
+	@echo "Installing $(BINARY_NAME)-dev..."
+	$(GOBUILD) -o $(shell go env GOPATH)/bin/$(BINARY_NAME)-dev $(MAIN_PATH)
+	@echo "Installed $(BINARY_NAME)-dev to $(shell go env GOPATH)/bin/"
+
 run: build
 	$(BINARY_PATH)
 
@@ -87,4 +92,5 @@ help:
 	@echo "  clean        - Clean build artifacts"
 	@echo "  deps         - Download dependencies"
 	@echo "  install      - Build and install binary"
+	@echo "  install-dev  - Build and install as craizy-dev"
 	@echo "  run          - Build and run"

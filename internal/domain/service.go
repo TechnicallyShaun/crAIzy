@@ -2,10 +2,16 @@ package domain
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+)
+
+const (
+	// WorktreesDir is the directory under .craizy where worktrees are created.
+	WorktreesDir = ".craizy/worktrees"
 )
 
 // AgentService orchestrates agent operations using the tmux client and store.
@@ -13,16 +19,18 @@ type AgentService struct {
 	tmux       ITmuxClient
 	store      IAgentStore
 	dispatcher IEventDispatcher
+	git        IGitClient
 	project    string
 	workDir    string
 }
 
 // NewAgentService creates a new AgentService with the given dependencies.
-func NewAgentService(tmux ITmuxClient, store IAgentStore, dispatcher IEventDispatcher, project, workDir string) *AgentService {
+func NewAgentService(tmux ITmuxClient, store IAgentStore, dispatcher IEventDispatcher, git IGitClient, project, workDir string) *AgentService {
 	return &AgentService{
 		tmux:       tmux,
 		store:      store,
 		dispatcher: dispatcher,
+		git:        git,
 		project:    project,
 		workDir:    workDir,
 	}
@@ -43,15 +51,50 @@ func (s *AgentService) Create(agentType, name, command string) (*Agent, error) {
 		_ = s.store.Remove(sessionID)
 	}
 
+	// Build branch name from session ID
+	branchName := sessionID
+
+	// Check if branch already exists
+	if s.git != nil && s.git.BranchExists(branchName) {
+		return nil, fmt.Errorf("branch %q already exists", branchName)
+	}
+
+	// Get current branch as base
+	var baseBranch string
+	var worktreePath string
+	if s.git != nil {
+		var err error
+		baseBranch, err = s.git.CurrentBranch(s.workDir)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get current branch: %w", err)
+		}
+
+		// Create worktree path
+		worktreePath = filepath.Join(s.workDir, WorktreesDir, SanitizeName(name))
+
+		// Create worktree with new branch
+		if err := s.git.CreateWorktree(worktreePath, branchName, baseBranch); err != nil {
+			return nil, fmt.Errorf("failed to create worktree: %w", err)
+		}
+	}
+
+	// Set agent work directory to worktree if created, otherwise use main workDir
+	agentWorkDir := s.workDir
+	if worktreePath != "" {
+		agentWorkDir = worktreePath
+	}
+
 	agent := &Agent{
-		ID:        sessionID,
-		Project:   s.project,
-		AgentType: agentType,
-		Name:      name,
-		Command:   command,
-		WorkDir:   s.workDir,
-		Status:    AgentStatusActive,
-		CreatedAt: time.Now(),
+		ID:         sessionID,
+		Project:    s.project,
+		AgentType:  agentType,
+		Name:       name,
+		Command:    command,
+		WorkDir:    agentWorkDir,
+		Status:     AgentStatusActive,
+		CreatedAt:  time.Now(),
+		Branch:     branchName,
+		BaseBranch: baseBranch,
 	}
 
 	// Publish event - adapters will create tmux session and store agent
@@ -72,6 +115,92 @@ func (s *AgentService) Kill(sessionID string) error {
 	})
 
 	return nil
+}
+
+// CheckKill checks if an agent has uncommitted changes before killing.
+// Returns true if there are uncommitted changes that need user confirmation.
+func (s *AgentService) CheckKill(sessionID string) (hasUncommitted bool, err error) {
+	if s.git == nil {
+		return false, nil
+	}
+
+	agent := s.store.Get(sessionID)
+	if agent == nil {
+		return false, fmt.Errorf("agent %q not found", sessionID)
+	}
+
+	if agent.Branch == "" {
+		return false, nil
+	}
+
+	return s.git.HasUncommittedChanges(agent.WorkDir), nil
+}
+
+// ForceKill terminates an agent, optionally discarding uncommitted changes.
+func (s *AgentService) ForceKill(sessionID string, discardChanges bool) error {
+	if s.git != nil && !discardChanges {
+		agent := s.store.Get(sessionID)
+		if agent != nil && agent.Branch != "" && s.git.HasUncommittedChanges(agent.WorkDir) {
+			// Stash changes before killing
+			_ = s.git.Stash(agent.WorkDir)
+		}
+	}
+
+	return s.Kill(sessionID)
+}
+
+// MergeResult contains the result of a merge operation.
+type MergeResult struct {
+	Success     bool
+	Stashed     bool
+	ConflictErr error
+}
+
+// MergeAgent merges an agent's branch into the base branch.
+// If there are uncommitted changes in the main workdir, they are stashed first.
+func (s *AgentService) MergeAgent(sessionID string) (*MergeResult, error) {
+	if s.git == nil {
+		return nil, fmt.Errorf("git client not available")
+	}
+
+	agent := s.store.Get(sessionID)
+	if agent == nil {
+		return nil, fmt.Errorf("agent %q not found", sessionID)
+	}
+
+	if agent.Branch == "" {
+		return nil, fmt.Errorf("agent has no branch to merge")
+	}
+
+	result := &MergeResult{Success: false}
+
+	// Check for uncommitted changes in main workdir and stash if needed
+	if s.git.HasUncommittedChanges(s.workDir) {
+		if err := s.git.Stash(s.workDir); err != nil {
+			return nil, fmt.Errorf("failed to stash changes: %w", err)
+		}
+		result.Stashed = true
+	}
+
+	// Merge the agent's branch
+	if err := s.git.Merge(agent.Branch); err != nil {
+		// Merge failed, likely a conflict
+		result.ConflictErr = err
+		// Pop stash if we stashed
+		if result.Stashed {
+			_ = s.git.StashPop(s.workDir)
+		}
+		return result, nil
+	}
+
+	result.Success = true
+
+	// Pop stash if we stashed
+	if result.Stashed {
+		_ = s.git.StashPop(s.workDir)
+	}
+
+	return result, nil
 }
 
 // List returns active agents for the current project.

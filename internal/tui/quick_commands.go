@@ -37,7 +37,7 @@ func (m QuickCommandsModel) View() string {
 	// Build context-aware hints
 	hints := "n - new agent"
 	if m.agentSelected {
-		hints += " • enter - port to agent • k - kill agent"
+		hints += " • enter - port to agent • m - merge agent • k - kill agent"
 	}
 	hints += " • q - quit"
 

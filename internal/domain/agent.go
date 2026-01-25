@@ -26,6 +26,8 @@ type Agent struct {
 	Status       AgentStatus  // current lifecycle status
 	CreatedAt    time.Time
 	TerminatedAt *time.Time   // when the agent was terminated (nil if still active)
+	Branch       string       // worktree branch name
+	BaseBranch   string       // branch it was created from
 }
 
 // BuildSessionID creates a unique tmux session ID from the components.
