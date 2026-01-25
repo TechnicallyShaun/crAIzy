@@ -86,6 +86,60 @@ func TestContentAreaModel_View(t *testing.T) {
 	})
 }
 
+func TestContentAreaModel_availableWidth(t *testing.T) {
+	tests := []struct {
+		name     string
+		width    int
+		expected int
+	}{
+		{"standard width", 80, 78},
+		{"small width", 20, 18},
+		{"minimum width", 3, 1},
+		{"zero width", 0, 1},
+		{"width of 1", 1, 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := NewContentArea()
+			m.SetSize(tt.width, 24)
+
+			got := m.availableWidth()
+
+			if got != tt.expected {
+				t.Errorf("availableWidth() = %d, want %d", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestTruncateLine(t *testing.T) {
+	tests := []struct {
+		name     string
+		line     string
+		maxWidth int
+		expected string
+	}{
+		{"short line unchanged", "hello", 10, "hello"},
+		{"exact length unchanged", "hello", 5, "hello"},
+		{"long line truncated", "hello world", 5, "hello"},
+		{"zero width", "hello", 0, ""},
+		{"negative width", "hello", -1, ""},
+		{"unicode truncation", "héllo wörld", 5, "héllo"},
+		{"emoji truncation", "👋🌍🎉", 2, "👋🌍"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := truncateLine(tt.line, tt.maxWidth)
+
+			if got != tt.expected {
+				t.Errorf("truncateLine(%q, %d) = %q, want %q", tt.line, tt.maxWidth, got, tt.expected)
+			}
+		})
+	}
+}
+
 func TestContentAreaModel_renderPreview(t *testing.T) {
 	t.Run("truncates to available lines", func(t *testing.T) {
 		m := NewContentArea()
@@ -118,6 +172,45 @@ func TestContentAreaModel_renderPreview(t *testing.T) {
 
 		if len(renderedLines) != 3 {
 			t.Errorf("rendered %d lines, want 3", len(renderedLines))
+		}
+	})
+
+	t.Run("truncates long lines to available width", func(t *testing.T) {
+		m := NewContentArea()
+		m.SetSize(20, 10) // 18 available width
+
+		longLine := "this is a very long line that should be truncated"
+		m.SetPreview(longLine)
+
+		rendered := m.renderPreview()
+
+		if len([]rune(rendered)) > 18 {
+			t.Errorf("rendered line has %d chars, want max 18", len([]rune(rendered)))
+		}
+	})
+
+	t.Run("responds to size changes", func(t *testing.T) {
+		m := NewContentArea()
+		longLine := "this is a very long line that should be truncated differently at different sizes"
+		m.SetPreview(longLine)
+
+		// Start with wide width
+		m.SetSize(50, 10) // 48 available width
+		rendered1 := m.renderPreview()
+
+		// Resize to narrow width
+		m.SetSize(20, 10) // 18 available width
+		rendered2 := m.renderPreview()
+
+		// Content should be shorter after resize
+		if len([]rune(rendered2)) >= len([]rune(rendered1)) {
+			t.Errorf("narrower width should produce shorter content: got %d >= %d",
+				len([]rune(rendered2)), len([]rune(rendered1)))
+		}
+
+		// Verify it respects the new width
+		if len([]rune(rendered2)) > 18 {
+			t.Errorf("after resize, rendered line has %d chars, want max 18", len([]rune(rendered2)))
 		}
 	})
 }

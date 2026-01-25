@@ -174,14 +174,43 @@ func (m ContentAreaModel) renderEmptyState() string {
 	return builder.String()
 }
 
+// availableWidth returns the number of characters available per line.
+// Accounts for border (2 chars).
+func (m ContentAreaModel) availableWidth() int {
+	available := m.width - 2
+	if available < 1 {
+		return 1
+	}
+	return available
+}
+
+// truncateLine truncates a line to fit within maxWidth.
+// Uses rune-aware truncation to handle multi-byte characters.
+func truncateLine(line string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return ""
+	}
+	runes := []rune(line)
+	if len(runes) <= maxWidth {
+		return line
+	}
+	return string(runes[:maxWidth])
+}
+
 // renderPreview renders the tmux pane output.
 func (m ContentAreaModel) renderPreview() string {
-	// Just return the content, trimming to fit
 	lines := strings.Split(m.previewContent, "\n")
-	available := m.AvailableLines()
+	availableLines := m.AvailableLines()
+	availableWidth := m.availableWidth()
 
-	if len(lines) > available {
-		lines = lines[len(lines)-available:]
+	// Take the last N lines that fit
+	if len(lines) > availableLines {
+		lines = lines[len(lines)-availableLines:]
+	}
+
+	// Truncate each line to fit width
+	for i, line := range lines {
+		lines[i] = truncateLine(line, availableWidth)
 	}
 
 	return strings.Join(lines, "\n")
