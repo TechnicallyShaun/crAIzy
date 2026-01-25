@@ -21,6 +21,9 @@ type ITmuxClient interface {
 
 	// CapturePaneOutput captures the last N lines from a tmux pane.
 	CapturePaneOutput(sessionID string, lines int) (string, error)
+
+	// SendKeys sends text/commands to a tmux session.
+	SendKeys(sessionID, text string) error
 }
 
 // IGitClient defines the interface for git operations.
@@ -64,6 +67,9 @@ type IGitClient interface {
 
 	// MergeAbort aborts an in-progress merge.
 	MergeAbort() error
+
+	// MergeConflictFiles returns the list of files with merge conflicts.
+	MergeConflictFiles() ([]string, error)
 }
 
 // IAgentStore defines the interface for agent persistence.

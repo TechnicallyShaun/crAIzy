@@ -208,3 +208,23 @@ func (g *GitClient) MergeAbort() error {
 	logging.Info("merge aborted")
 	return nil
 }
+
+// MergeConflictFiles returns the list of files with merge conflicts.
+func (g *GitClient) MergeConflictFiles() ([]string, error) {
+	logging.Entry()
+	cmd := exec.Command("git", "-C", g.repoRoot, "diff", "--name-only", "--diff-filter=U")
+	output, err := cmd.Output()
+	if err != nil {
+		logging.Error(err)
+		return nil, err
+	}
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	var files []string
+	for _, line := range lines {
+		if line != "" {
+			files = append(files, line)
+		}
+	}
+	logging.Debug("conflict files=%v", files)
+	return files, nil
+}

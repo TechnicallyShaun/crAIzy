@@ -38,13 +38,15 @@ func (t *TmuxClient) CreateSession(id, command, workDir string) error {
 	return nil
 }
 
-// configureStatusBar sets up a custom status bar for the tmux session.
-// Uses Nord-inspired colors from the theme package.
+// configureStatusBar sets up tmux session options including mouse support
+// and a custom status bar. Uses Nord-inspired colors from the theme package.
 func (t *TmuxClient) configureStatusBar(sessionID string) {
 	ts := theme.TmuxStatusBar
 
-	// Status bar styling using theme colors
+	// Session configuration using theme colors
 	setOptions := [][]string{
+		// Enable mouse support for scrollback, pane selection, etc.
+		{"-t", sessionID, "mouse", "on"},
 		// Status bar colors
 		{"-t", sessionID, "status-style", fmt.Sprintf("bg=%s,fg=%s", ts.Background, ts.Foreground)},
 		// Left side: crAIzy branding + session info
@@ -131,4 +133,17 @@ func (t *TmuxClient) CapturePaneOutput(sessionID string, lines int) (string, err
 		logging.Error(err, "sessionID", sessionID)
 	}
 	return string(output), err
+}
+
+// SendKeys sends text/commands to a tmux session.
+// Command: tmux send-keys -t {id} {text} Enter
+func (t *TmuxClient) SendKeys(sessionID, text string) error {
+	logging.Entry("sessionID", sessionID, "textLen", len(text))
+	cmd := exec.Command("tmux", "send-keys", "-t", sessionID, text, "Enter")
+	if err := cmd.Run(); err != nil {
+		logging.Error(err, "sessionID", sessionID)
+		return err
+	}
+	logging.Info("keys sent to tmux session, id=%s", sessionID)
+	return nil
 }

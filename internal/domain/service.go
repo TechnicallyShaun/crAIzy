@@ -171,9 +171,12 @@ func (s *AgentService) ForceKill(sessionID string, discardChanges bool) error {
 
 // MergeResult contains the result of a merge operation.
 type MergeResult struct {
-	Success     bool
-	Stashed     bool
-	ConflictErr error
+	Success       bool
+	Stashed       bool
+	ConflictErr   error
+	ConflictFiles []string
+	BaseBranch    string
+	AgentID       string
 }
 
 // MergeAgent merges an agent's branch into the base branch.
@@ -217,6 +220,14 @@ func (s *AgentService) MergeAgent(sessionID string) (*MergeResult, error) {
 		// Merge failed, likely a conflict
 		logging.Error(err, "branch", agent.Branch, "conflict", true)
 		result.ConflictErr = err
+		result.BaseBranch = agent.BaseBranch
+		result.AgentID = agent.ID
+
+		// Get conflict files before aborting
+		if conflictFiles, cfErr := s.git.MergeConflictFiles(); cfErr == nil {
+			result.ConflictFiles = conflictFiles
+		}
+
 		// Pop stash if we stashed
 		if result.Stashed {
 			_ = s.git.StashPop(s.workDir)
@@ -325,4 +336,19 @@ func (s *AgentService) Reconcile() error {
 type AgentDetachedMsg struct {
 	SessionID string
 	Err       error
+}
+
+// AbortMerge aborts an in-progress merge.
+func (s *AgentService) AbortMerge() error {
+	logging.Entry()
+	if s.git == nil {
+		return fmt.Errorf("git client not available")
+	}
+	return s.git.MergeAbort()
+}
+
+// SendMessageToAgent sends a message to the agent's tmux terminal.
+func (s *AgentService) SendMessageToAgent(sessionID, message string) error {
+	logging.Entry("sessionID", sessionID)
+	return s.tmux.SendKeys(sessionID, message)
 }
