@@ -3,6 +3,7 @@ package tui
 import (
 	"strings"
 
+	"github.com/TechnicallyShaun/crAIzy/internal/tui/theme"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	figure "github.com/common-nighthawk/go-figure"
@@ -87,9 +88,7 @@ func (m ContentAreaModel) AvailableLines() int {
 }
 
 func (m ContentAreaModel) View() string {
-	borderStyle := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("86")). // Cyan
+	borderStyle := theme.BorderNormal.
 		Width(m.width - 2).
 		Height(m.height - 2)
 
@@ -111,18 +110,15 @@ func (m ContentAreaModel) renderEmptyState() string {
 	}
 
 	// Style for tagline
-	taglineStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("250")). // Light gray
+	taglineStyle := theme.ContentTagline.
 		Align(lipgloss.Center).
 		Width(innerWidth)
 
-	// Style for logo (cyan to match border) - no centering, we'll pad manually
-	logoStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("86"))
+	// Style for logo - no centering, we'll pad manually
+	logoStyle := theme.ContentLogo
 
 	// Style for version
-	versionStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("245")). // Medium gray
+	versionStyle := theme.ContentVersion.
 		Align(lipgloss.Center).
 		Width(innerWidth)
 

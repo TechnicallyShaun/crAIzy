@@ -278,5 +278,12 @@ func (m Model) View() string {
 	if m.modal.IsOpen() {
 		return m.modal.View()
 	}
-	return baseView
+
+	// Use lipgloss.Place to ensure the view fills the entire terminal,
+	// preventing previous terminal output from bleeding through.
+	return lipgloss.Place(
+		m.width, m.height,
+		lipgloss.Left, lipgloss.Top,
+		baseView,
+	)
 }

@@ -2,6 +2,7 @@ package tui
 
 import (
 	"github.com/TechnicallyShaun/crAIzy/internal/domain"
+	"github.com/TechnicallyShaun/crAIzy/internal/tui/theme"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -104,9 +105,7 @@ func (m SideMenuModel) View() string {
 		Height(m.height)
 
 	if len(m.agents) == 0 {
-		emptyStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240")).
-			Padding(1)
+		emptyStyle := theme.SideMenuEmpty.Padding(1)
 		return style.Render(emptyStyle.Render("No agents running\n\nPress 'n' to create one"))
 	}
 

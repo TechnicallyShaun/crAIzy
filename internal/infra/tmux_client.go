@@ -1,9 +1,12 @@
 package infra
 
 import (
+	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/TechnicallyShaun/crAIzy/internal/tui/theme"
 )
 
 // TmuxClient implements ITmuxClient using real tmux commands.
@@ -32,22 +35,25 @@ func (t *TmuxClient) CreateSession(id, command, workDir string) error {
 }
 
 // configureStatusBar sets up a custom status bar for the tmux session.
+// Uses Nord-inspired colors from the theme package.
 func (t *TmuxClient) configureStatusBar(sessionID string) {
-	// Status bar styling
+	ts := theme.TmuxStatusBar
+
+	// Status bar styling using theme colors
 	setOptions := [][]string{
 		// Status bar colors
-		{"-t", sessionID, "status-style", "bg=#1a1a2e,fg=#8b8b9e"},
+		{"-t", sessionID, "status-style", fmt.Sprintf("bg=%s,fg=%s", ts.Background, ts.Foreground)},
 		// Left side: crAIzy branding + session info
-		{"-t", sessionID, "status-left", "#[fg=#7c3aed,bold] crAIzy #[fg=#8b8b9e]│ #[fg=#a78bfa]#{session_name} "},
+		{"-t", sessionID, "status-left", fmt.Sprintf("#[fg=%s,bold] crAIzy #[fg=%s]│ #[fg=%s]#{session_name} ", ts.BrandColor, ts.SeparatorColor, ts.AccentColor)},
 		{"-t", sessionID, "status-left-length", "50"},
 		// Right side: detach hint + time
-		{"-t", sessionID, "status-right", "#[fg=#6b7280]Detach: Ctrl+B, D #[fg=#8b8b9e]│ #[fg=#a78bfa]%H:%M "},
+		{"-t", sessionID, "status-right", fmt.Sprintf("#[fg=%s]Detach: Ctrl+B, D #[fg=%s]│ #[fg=%s]%%H:%%M ", ts.MutedColor, ts.SeparatorColor, ts.AccentColor)},
 		{"-t", sessionID, "status-right-length", "40"},
 		// Center the window list
 		{"-t", sessionID, "status-justify", "centre"},
 		// Window styling
-		{"-t", sessionID, "window-status-format", "#[fg=#6b7280] #W "},
-		{"-t", sessionID, "window-status-current-format", "#[fg=#a78bfa,bold] #W "},
+		{"-t", sessionID, "window-status-format", fmt.Sprintf("#[fg=%s] #W ", ts.MutedColor)},
+		{"-t", sessionID, "window-status-current-format", fmt.Sprintf("#[fg=%s,bold] #W ", ts.AccentColor)},
 	}
 
 	for _, opt := range setOptions {

@@ -2,6 +2,7 @@ package tui
 
 import (
 	"github.com/TechnicallyShaun/crAIzy/internal/config"
+	"github.com/TechnicallyShaun/crAIzy/internal/tui/theme"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -58,17 +59,13 @@ func (m NameInputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m NameInputModel) View() string {
-	title := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("205")).
+	title := theme.ModalTitle.
 		Render("Name your " + m.selectedAgent.Name + " Agent")
 
 	input := m.textInput.View()
 
-	box := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
+	box := theme.ModalBorder.
 		Padding(1, 2).
-		BorderForeground(lipgloss.Color("63")).
 		Render(
 			lipgloss.JoinVertical(lipgloss.Center,
 				title,

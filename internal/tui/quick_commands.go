@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/TechnicallyShaun/crAIzy/internal/tui/theme"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -41,9 +42,8 @@ func (m QuickCommandsModel) View() string {
 	}
 	hints += " • q - quit"
 
-	// Style: no border, grey text, centered horizontally, aligned to bottom
-	textStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("245")). // Grey text
+	// Style: no border, muted text, centered horizontally, aligned to bottom
+	textStyle := theme.QuickCommandDesc.
 		Width(m.width).
 		Align(lipgloss.Center)
 
