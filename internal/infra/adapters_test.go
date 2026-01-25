@@ -60,6 +60,10 @@ func (m *mockTmuxClient) CapturePaneOutput(sessionID string, lines int) (string,
 	return "mock output", nil
 }
 
+func (m *mockTmuxClient) SendKeys(sessionID, text string) error {
+	return nil
+}
+
 func TestWireAdapters_AgentCreated(t *testing.T) {
 	t.Run("creates tmux session and stores agent", func(t *testing.T) {
 		dispatcher := NewEventDispatcher()

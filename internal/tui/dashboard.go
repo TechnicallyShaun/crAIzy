@@ -1,7 +1,9 @@
 package tui
 
 import (
+	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/TechnicallyShaun/crAIzy/internal/config"
@@ -111,8 +113,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case MergeResultMsg:
 		// Show merge result modal
-		modal := NewMergeResultModal(msg.AgentName, msg.Success, msg.Stashed, msg.ConflictErr, m.width, m.height)
+		modal := NewMergeResultModal(msg.AgentName, msg.AgentID, msg.Success, msg.Stashed, msg.ConflictErr, msg.ConflictFiles, msg.BaseBranch, m.width, m.height)
 		m.modal.Open(modal)
+		return m, nil
+
+	case MergeConflictResultMsg:
+		// Close the modal first
+		m.modal.Close()
+
+		// Always abort the merge
+		if m.agentService != nil {
+			_ = m.agentService.AbortMerge()
+
+			// If user chose to send to terminal, send the instructional message
+			if msg.Choice == MergeConflictSendToTerminal {
+				message := buildMergeConflictMessage(msg.BaseBranch, msg.ConflictFiles)
+				_ = m.agentService.SendMessageToAgent(msg.AgentID, message)
+			}
+		}
 		return m, nil
 
 	case AgentSelectedMsg:
@@ -230,20 +248,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Merge selected agent's branch
 			if agent := m.sideMenu.SelectedAgent(); agent != nil && m.agentService != nil {
 				agentName := agent.Name
+				agentID := agent.ID
 				return m, func() tea.Msg {
-					result, err := m.agentService.MergeAgent(agent.ID)
+					result, err := m.agentService.MergeAgent(agentID)
 					if err != nil {
 						return MergeResultMsg{
 							AgentName:   agentName,
+							AgentID:     agentID,
 							Success:     false,
 							ConflictErr: err,
 						}
 					}
 					return MergeResultMsg{
-						AgentName:   agentName,
-						Success:     result.Success,
-						Stashed:     result.Stashed,
-						ConflictErr: result.ConflictErr,
+						AgentName:     agentName,
+						AgentID:       result.AgentID,
+						Success:       result.Success,
+						Stashed:       result.Stashed,
+						ConflictErr:   result.ConflictErr,
+						ConflictFiles: result.ConflictFiles,
+						BaseBranch:    result.BaseBranch,
 					}
 				}
 			}
@@ -292,4 +315,14 @@ func (m Model) View() string {
 		lipgloss.Left, lipgloss.Top,
 		baseView,
 	)
+}
+
+// buildMergeConflictMessage creates an instructional message for the agent terminal.
+func buildMergeConflictMessage(baseBranch string, conflictFiles []string) string {
+	msg := fmt.Sprintf("echo 'Merging this worktree into %s has failed due to a conflict.", baseBranch)
+	if len(conflictFiles) > 0 {
+		msg += fmt.Sprintf(" Conflicting files: %s.", strings.Join(conflictFiles, ", "))
+	}
+	msg += " Resolve and commit the conflicts.'"
+	return msg
 }

@@ -56,6 +56,10 @@ func (m *mockTmuxClient) CapturePaneOutput(sessionID string, lines int) (string,
 	return m.capturedOutput, m.captureErr
 }
 
+func (m *mockTmuxClient) SendKeys(sessionID, text string) error {
+	return nil
+}
+
 type mockDispatcher struct {
 	published []Event
 }
