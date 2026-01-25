@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"os"
 	"time"
 
 	"github.com/TechnicallyShaun/crAIzy/internal/config"
@@ -191,10 +192,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "n":
-			agents, err := config.LoadAgents("AGENTS.yml")
+			// Load agents from .craizy/AGENTS.yml
+			workDir, err := os.Getwd()
 			if err == nil {
-				selector := NewAgentSelector(agents, m.width/2, m.height/2)
-				m.modal.Open(selector)
+				agentsPath := config.AgentsPath(workDir)
+				agents, err := config.LoadAgents(agentsPath)
+				if err == nil {
+					selector := NewAgentSelector(agents, m.width/2, m.height/2)
+					m.modal.Open(selector)
+				}
 			}
 
 		case "enter":
