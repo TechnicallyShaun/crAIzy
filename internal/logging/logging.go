@@ -33,7 +33,7 @@ var (
 func Init(logDir string) error {
 	var initErr error
 	once.Do(func() {
-		if err := os.MkdirAll(logDir, 0755); err != nil {
+		if err := os.MkdirAll(logDir, 0o755); err != nil {
 			initErr = fmt.Errorf("failed to create log directory: %w", err)
 			return
 		}
@@ -96,7 +96,7 @@ func Info(msg string, args ...interface{}) {
 	if defaultLogger == nil {
 		return
 	}
-	defaultLogger.info(msg, args...)
+	defaultLogger.infof(msg, args...)
 }
 
 // Debug logs a debug message.
@@ -104,7 +104,7 @@ func Debug(msg string, args ...interface{}) {
 	if defaultLogger == nil {
 		return
 	}
-	defaultLogger.debug(msg, args...)
+	defaultLogger.debugf(msg, args...)
 }
 
 // Close closes the logger's file handle.
@@ -131,7 +131,7 @@ func (l *Logger) rotateIfNeeded() error {
 
 	// Open new file for today
 	filename := filepath.Join(l.logDir, today+".log")
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return fmt.Errorf("failed to open log file: %w", err)
 	}
@@ -156,18 +156,20 @@ func (l *Logger) write(level, funcName, message string) {
 
 	timestamp := time.Now().Format("2006-01-02 15:04:05.000")
 	entry := fmt.Sprintf("%s [%s] %s: %s\n", timestamp, level, funcName, message)
-	l.file.WriteString(entry)
+	_, _ = l.file.WriteString(entry)
 }
 
+const unknownFunc = "unknown"
+
 // getCallerFunc returns the name of the calling function (2 levels up).
-func getCallerFunc(skip int) string {
-	pc, _, _, ok := runtime.Caller(skip)
+func getCallerFunc() string {
+	pc, _, _, ok := runtime.Caller(3)
 	if !ok {
-		return "unknown"
+		return unknownFunc
 	}
 	fn := runtime.FuncForPC(pc)
 	if fn == nil {
-		return "unknown"
+		return unknownFunc
 	}
 	name := fn.Name()
 	// Extract just the function name from the full path
@@ -178,7 +180,7 @@ func getCallerFunc(skip int) string {
 }
 
 func (l *Logger) entry(args ...interface{}) {
-	funcName := getCallerFunc(3)
+	funcName := getCallerFunc()
 	var msg string
 	if len(args) > 0 {
 		parts := make([]string, len(args))
@@ -193,7 +195,7 @@ func (l *Logger) entry(args ...interface{}) {
 }
 
 func (l *Logger) error(err error, context ...interface{}) {
-	funcName := getCallerFunc(3)
+	funcName := getCallerFunc()
 	var msg string
 	if len(context) > 0 {
 		parts := make([]string, len(context))
@@ -207,14 +209,14 @@ func (l *Logger) error(err error, context ...interface{}) {
 	l.write("ERROR", funcName, msg)
 }
 
-func (l *Logger) info(format string, args ...interface{}) {
-	funcName := getCallerFunc(3)
+func (l *Logger) infof(format string, args ...interface{}) {
+	funcName := getCallerFunc()
 	msg := fmt.Sprintf(format, args...)
 	l.write("INFO", funcName, msg)
 }
 
-func (l *Logger) debug(format string, args ...interface{}) {
-	funcName := getCallerFunc(3)
+func (l *Logger) debugf(format string, args ...interface{}) {
+	funcName := getCallerFunc()
 	msg := fmt.Sprintf(format, args...)
 	l.write("DEBUG", funcName, msg)
 }

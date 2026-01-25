@@ -1,10 +1,11 @@
 package tui
 
 import (
-	"github.com/TechnicallyShaun/crAIzy/internal/config"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/TechnicallyShaun/crAIzy/internal/config"
 )
 
 type AgentItem struct {
@@ -32,7 +33,7 @@ func NewAgentSelector(agents []config.Agent, width, height int) AgentSelectorMod
 	l := list.New(items, list.NewDefaultDelegate(), width, height)
 	l.Title = "Select an Agent"
 	l.SetShowHelp(false)
-	l.SetFilteringEnabled(false) // Simple selection for now
+	l.SetFilteringEnabled(false)    // Simple selection for now
 	l.KeyMap.Quit.SetEnabled(false) // Prevent 'q' from quitting - handled by dashboard only
 
 	return AgentSelectorModel{

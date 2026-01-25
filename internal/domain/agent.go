@@ -17,17 +17,17 @@ const (
 
 // Agent represents a running agent session in tmux.
 type Agent struct {
-	ID           string       // tmux session ID: craizy-{project}-{agent}-{name}
-	Project      string       // parent folder name
-	AgentType    string       // from AGENTS.yml (lowercase)
-	Name         string       // user-entered name (sanitized)
-	Command      string       // agent command to run
-	WorkDir      string       // working directory
-	Status       AgentStatus  // current lifecycle status
+	ID           string      // tmux session ID: craizy-{project}-{agent}-{name}
+	Project      string      // parent folder name
+	AgentType    string      // from AGENTS.yml (lowercase)
+	Name         string      // user-entered name (sanitized)
+	Command      string      // agent command to run
+	WorkDir      string      // working directory
+	Status       AgentStatus // current lifecycle status
 	CreatedAt    time.Time
-	TerminatedAt *time.Time   // when the agent was terminated (nil if still active)
-	Branch       string       // worktree branch name
-	BaseBranch   string       // branch it was created from
+	TerminatedAt *time.Time // when the agent was terminated (nil if still active)
+	Branch       string     // worktree branch name
+	BaseBranch   string     // branch it was created from
 }
 
 // BuildSessionID creates a unique tmux session ID from the components.

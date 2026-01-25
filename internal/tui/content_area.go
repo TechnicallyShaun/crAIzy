@@ -3,10 +3,11 @@ package tui
 import (
 	"strings"
 
-	"github.com/TechnicallyShaun/crAIzy/internal/tui/theme"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	figure "github.com/common-nighthawk/go-figure"
+
+	"github.com/TechnicallyShaun/crAIzy/internal/tui/theme"
 )
 
 const version = "v0.1.0"

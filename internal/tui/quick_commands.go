@@ -1,9 +1,10 @@
 package tui
 
 import (
-	"github.com/TechnicallyShaun/crAIzy/internal/tui/theme"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/TechnicallyShaun/crAIzy/internal/tui/theme"
 )
 
 type QuickCommandsModel struct {

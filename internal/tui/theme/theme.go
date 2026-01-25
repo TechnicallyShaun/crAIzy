@@ -2,20 +2,20 @@ package theme
 
 import "github.com/charmbracelet/lipgloss"
 
-// Nord-inspired colour palette for 256-colour terminals.
+// Nord-inspired color palette for 256-color terminals.
 // See: https://www.nordtheme.com/
 var (
-	// Base colours (Polar Night / Snow Storm)
+	// Base colors (Polar Night / Snow Storm)
 	ColorBackground = lipgloss.Color("235") // #2E3440
 	ColorForeground = lipgloss.Color("255") // #ECEFF4
 	ColorMuted      = lipgloss.Color("243") // #4C566A
 
-	// Accent colours (Frost)
+	// Accent colors (Frost)
 	ColorPrimary   = lipgloss.Color("110") // #88C0D0 - Main accent
 	ColorSecondary = lipgloss.Color("111") // #81A1C1 - Secondary accent
 	ColorBorder    = lipgloss.Color("68")  // #5E81AC - Borders, dividers
 
-	// Semantic colours (Aurora)
+	// Semantic colors (Aurora)
 	ColorSuccess = lipgloss.Color("108") // #A3BE8C - Green: running, success
 	ColorWarning = lipgloss.Color("222") // #EBCB8B - Yellow: pending, warning
 	ColorError   = lipgloss.Color("174") // #BF616A - Red: stopped, error
@@ -117,18 +117,18 @@ var (
 			Bold(true)
 
 	QuickCommandDesc = lipgloss.NewStyle().
-			Foreground(ColorMuted)
+				Foreground(ColorMuted)
 )
 
 // TmuxStatusBar contains color values for tmux status bar configuration.
 // Uses hex values for broader tmux compatibility.
 var TmuxStatusBar = struct {
-	Background      string
-	Foreground      string
-	BrandColor      string
-	AccentColor     string
-	MutedColor      string
-	SeparatorColor  string
+	Background     string
+	Foreground     string
+	BrandColor     string
+	AccentColor    string
+	MutedColor     string
+	SeparatorColor string
 }{
 	Background:     "#3B4252", // Nord1 - slightly lighter than base
 	Foreground:     "#ECEFF4", // Nord6 - Snow Storm

@@ -6,8 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TechnicallyShaun/crAIzy/internal/logging"
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/TechnicallyShaun/crAIzy/internal/logging"
 )
 
 const (

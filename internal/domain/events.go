@@ -26,7 +26,7 @@ type AgentCreated struct {
 	Timestamp time.Time
 }
 
-func (e AgentCreated) EventType() string    { return "agent.created" }
+func (e AgentCreated) EventType() string     { return "agent.created" }
 func (e AgentCreated) OccurredAt() time.Time { return e.Timestamp }
 
 // AgentKilled is published when an agent is terminated.
@@ -35,7 +35,7 @@ type AgentKilled struct {
 	Timestamp time.Time
 }
 
-func (e AgentKilled) EventType() string    { return "agent.killed" }
+func (e AgentKilled) EventType() string     { return "agent.killed" }
 func (e AgentKilled) OccurredAt() time.Time { return e.Timestamp }
 
 // AgentStatusChanged is published when an agent's status changes.
@@ -46,5 +46,5 @@ type AgentStatusChanged struct {
 	Timestamp time.Time
 }
 
-func (e AgentStatusChanged) EventType() string    { return "agent.status_changed" }
+func (e AgentStatusChanged) EventType() string     { return "agent.status_changed" }
 func (e AgentStatusChanged) OccurredAt() time.Time { return e.Timestamp }

@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	_ "modernc.org/sqlite"
+
 	"github.com/TechnicallyShaun/crAIzy/internal/domain"
 	"github.com/TechnicallyShaun/crAIzy/internal/logging"
-	_ "modernc.org/sqlite"
 )
 
 // SQLiteAgentStore implements IAgentStore with SQLite persistence.

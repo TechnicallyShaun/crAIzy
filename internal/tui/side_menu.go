@@ -1,11 +1,12 @@
 package tui
 
 import (
-	"github.com/TechnicallyShaun/crAIzy/internal/domain"
-	"github.com/TechnicallyShaun/crAIzy/internal/tui/theme"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/TechnicallyShaun/crAIzy/internal/domain"
+	"github.com/TechnicallyShaun/crAIzy/internal/tui/theme"
 )
 
 // AgentListItem implements list.Item for domain.Agent

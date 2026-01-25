@@ -68,13 +68,13 @@ func (m Modal) View() string {
 	}
 
 	modalView := m.content.View()
-	
+
 	// Create a centered box for the modal
 	return lipgloss.Place(
-		m.width, 
-		m.height, 
-		lipgloss.Center, 
-		lipgloss.Center, 
+		m.width,
+		m.height,
+		lipgloss.Center,
+		lipgloss.Center,
 		modalView,
 		lipgloss.WithWhitespaceChars(" "), // Clears the background
 		// lipgloss.WithWhitespaceForeground(lipgloss.Color("240")), // Optional: dim color if we used a pattern

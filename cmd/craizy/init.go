@@ -87,7 +87,7 @@ func initGitRepo(workDir string, result *InitResult) error {
 
 	response = strings.TrimSpace(strings.ToLower(response))
 	if response != "" && response != "y" && response != "yes" {
-		return fmt.Errorf("crAIzy requires a git repository. Initialization cancelled.")
+		return fmt.Errorf("crAIzy requires a git repository. Initialization canceled")
 	}
 
 	cmd = exec.Command("git", "init", workDir)
@@ -125,7 +125,7 @@ func initGitIgnore(workDir string, result *InitResult) error {
 	// Add entry to .gitignore
 	fmt.Println("adding .craizy/")
 
-	f, err := os.OpenFile(gitignorePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(gitignorePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		logging.Error(err, "action", "open .gitignore")
 		return fmt.Errorf("failed to open .gitignore: %w", err)
@@ -165,7 +165,7 @@ func initCraizyDir(workDir string, result *InitResult) error {
 
 	fmt.Println("not found")
 
-	if err := os.MkdirAll(craizyDir, 0755); err != nil {
+	if err := os.MkdirAll(craizyDir, 0o755); err != nil {
 		logging.Error(err, "action", "create .craizy directory")
 		return fmt.Errorf("failed to create .craizy directory: %w", err)
 	}
@@ -190,7 +190,7 @@ func initAgentsYML(workDir string, result *InitResult) error {
 
 	fmt.Println("not found")
 
-	if err := os.WriteFile(agentsPath, config.DefaultAgentsYML, 0644); err != nil {
+	if err := os.WriteFile(agentsPath, config.DefaultAgentsYML, 0o644); err != nil {
 		logging.Error(err, "action", "create AGENTS.yml")
 		return fmt.Errorf("failed to create AGENTS.yml: %w", err)
 	}
@@ -251,9 +251,5 @@ func isInitialized(workDir string) bool {
 
 	// Check for git repo
 	cmd := exec.Command("git", "-C", workDir, "rev-parse", "--git-dir")
-	if cmd.Run() != nil {
-		return false
-	}
-
-	return true
+	return cmd.Run() == nil
 }

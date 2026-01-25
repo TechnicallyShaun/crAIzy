@@ -136,7 +136,7 @@ func (g *GitClient) HasUncommittedChanges(path string) bool {
 		logging.Error(err, "path", path)
 		return false
 	}
-	hasChanges := len(strings.TrimSpace(string(output))) > 0
+	hasChanges := strings.TrimSpace(string(output)) != ""
 	logging.Debug("hasUncommittedChanges=%v", hasChanges)
 	return hasChanges
 }

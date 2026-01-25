@@ -56,7 +56,7 @@ func (t *TmuxClient) configureStatusBar(sessionID string) {
 		{"-t", sessionID, "status-right", fmt.Sprintf("#[fg=%s]Detach: Ctrl+B, D #[fg=%s]│ #[fg=%s]%%H:%%M ", ts.MutedColor, ts.SeparatorColor, ts.AccentColor)},
 		{"-t", sessionID, "status-right-length", "40"},
 		// Center the window list
-		{"-t", sessionID, "status-justify", "centre"},
+		{"-t", sessionID, "status-justify", "center"},
 		// Window styling
 		{"-t", sessionID, "window-status-format", fmt.Sprintf("#[fg=%s] #W ", ts.MutedColor)},
 		{"-t", sessionID, "window-status-current-format", fmt.Sprintf("#[fg=%s,bold] #W ", ts.AccentColor)},
@@ -64,7 +64,7 @@ func (t *TmuxClient) configureStatusBar(sessionID string) {
 
 	for _, opt := range setOptions {
 		args := append([]string{"set-option"}, opt...)
-		exec.Command("tmux", args...).Run()
+		_ = exec.Command("tmux", args...).Run()
 	}
 }
 

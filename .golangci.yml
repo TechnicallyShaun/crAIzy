@@ -65,19 +65,40 @@ issues:
         - dupl
         - gosec
         - goconst
+        - gocritic
+        - unparam
     - linters:
         - typecheck
       text: "undefined: yaml"
     # Bubble Tea models must use value receivers per the tea.Model interface
-    - path: internal/tui/dashboard/model\.go
+    - path: internal/tui/
       linters:
         - gocritic
       text: "hugeParam"
-    # Modal also uses value receivers for consistency with Bubble Tea pattern
-    - path: internal/tui/dashboard/modal\.go
+    # Bubble Tea Update functions tend to have high cyclomatic complexity
+    - path: internal/tui/dashboard\.go
+      linters:
+        - gocyclo
+    # Git client uses external input for git commands, which is expected
+    - path: internal/infra/git_client\.go
+      linters:
+        - gosec
+      text: "G204"
+    # Config file permissions are expected to be 0644
+    - path: cmd/craizy/init\.go
+      linters:
+        - gosec
+      text: "G306"
+    # Common key strings in TUI are repeated but readable inline
+    - path: internal/tui/
+      linters:
+        - goconst
+      text: "enter|esc|left|right|Loading"
+    # singleCaseSwitch is fine for tea.Msg type switches - clarity over brevity
+    - path: internal/tui/
       linters:
         - gocritic
-      text: "hugeParam"
+      text: "singleCaseSwitch"
 
 run:
   timeout: 5m

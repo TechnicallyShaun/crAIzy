@@ -1,11 +1,12 @@
 package tui
 
 import (
-	"github.com/TechnicallyShaun/crAIzy/internal/config"
-	"github.com/TechnicallyShaun/crAIzy/internal/tui/theme"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/TechnicallyShaun/crAIzy/internal/config"
+	"github.com/TechnicallyShaun/crAIzy/internal/tui/theme"
 )
 
 type NameInputModel struct {

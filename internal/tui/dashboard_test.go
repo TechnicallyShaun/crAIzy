@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TechnicallyShaun/crAIzy/internal/domain"
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/TechnicallyShaun/crAIzy/internal/domain"
 )
 
 func TestPreviewPollInterval(t *testing.T) {

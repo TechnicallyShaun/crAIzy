@@ -6,10 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TechnicallyShaun/crAIzy/internal/config"
-	"github.com/TechnicallyShaun/crAIzy/internal/domain"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/TechnicallyShaun/crAIzy/internal/config"
+	"github.com/TechnicallyShaun/crAIzy/internal/domain"
 )
 
 // PreviewPollInterval is how often to poll for preview updates.

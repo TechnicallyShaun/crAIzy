@@ -15,7 +15,7 @@ func TestInit(t *testing.T) {
 	logDir := filepath.Join(tmpDir, ".craizy")
 
 	// Reset the once for testing
-	once = *new(sync.Once)
+	once = sync.Once{}
 	defaultLogger = nil
 
 	err := Init(logDir)
@@ -42,7 +42,7 @@ func TestEntry(t *testing.T) {
 	logDir := filepath.Join(tmpDir, ".craizy")
 
 	// Reset for testing
-	once = *new(sync.Once)
+	once = sync.Once{}
 	defaultLogger = nil
 
 	if err := Init(logDir); err != nil {
@@ -79,7 +79,7 @@ func TestError(t *testing.T) {
 	logDir := filepath.Join(tmpDir, ".craizy")
 
 	// Reset for testing
-	once = *new(sync.Once)
+	once = sync.Once{}
 	defaultLogger = nil
 
 	if err := Init(logDir); err != nil {
@@ -117,7 +117,7 @@ func TestInfo(t *testing.T) {
 	logDir := filepath.Join(tmpDir, ".craizy")
 
 	// Reset for testing
-	once = *new(sync.Once)
+	once = sync.Once{}
 	defaultLogger = nil
 
 	if err := Init(logDir); err != nil {
@@ -151,7 +151,7 @@ func TestDisable(t *testing.T) {
 	logDir := filepath.Join(tmpDir, ".craizy")
 
 	// Reset for testing
-	once = *new(sync.Once)
+	once = sync.Once{}
 	defaultLogger = nil
 
 	if err := Init(logDir); err != nil {
@@ -191,7 +191,7 @@ func TestAppendMode(t *testing.T) {
 	logDir := filepath.Join(tmpDir, ".craizy")
 
 	// Reset for testing
-	once = *new(sync.Once)
+	once = sync.Once{}
 	defaultLogger = nil
 
 	if err := Init(logDir); err != nil {
@@ -202,7 +202,7 @@ func TestAppendMode(t *testing.T) {
 	Close()
 
 	// Re-initialize (simulating app restart)
-	once = *new(sync.Once)
+	once = sync.Once{}
 	defaultLogger = nil
 
 	if err := Init(logDir); err != nil {

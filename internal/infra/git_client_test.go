@@ -32,7 +32,7 @@ func setupTestRepo(t *testing.T) (string, func()) {
 
 	// Create initial commit so we have a valid HEAD
 	testFile := filepath.Join(tmpDir, "README.md")
-	if err := os.WriteFile(testFile, []byte("# Test"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("# Test"), 0o644); err != nil {
 		os.RemoveAll(tmpDir)
 		t.Fatalf("failed to create test file: %v", err)
 	}
@@ -81,7 +81,7 @@ func TestGitClient_Init(t *testing.T) {
 
 	// Test initializing a new repo
 	newRepoPath := filepath.Join(tmpDir, "new-repo")
-	if err := os.MkdirAll(newRepoPath, 0755); err != nil {
+	if err := os.MkdirAll(newRepoPath, 0o755); err != nil {
 		t.Fatalf("failed to create new repo dir: %v", err)
 	}
 
@@ -149,7 +149,7 @@ func TestGitClient_CreateWorktree(t *testing.T) {
 	defer os.RemoveAll(worktreePath)
 
 	// Verify worktree exists
-	if _, err := os.Stat(worktreePath); os.IsNotExist(err) {
+	if _, statErr := os.Stat(worktreePath); os.IsNotExist(statErr) {
 		t.Error("CreateWorktree should create the worktree directory")
 	}
 
@@ -230,7 +230,7 @@ func TestGitClient_HasUncommittedChanges(t *testing.T) {
 
 	// Create an uncommitted change
 	testFile := filepath.Join(repoDir, "new-file.txt")
-	if err := os.WriteFile(testFile, []byte("test content"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("test content"), 0o644); err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
 
@@ -247,11 +247,11 @@ func TestGitClient_DiscardChanges(t *testing.T) {
 
 	// Create uncommitted changes
 	testFile := filepath.Join(repoDir, "discard-me.txt")
-	_ = os.WriteFile(testFile, []byte("test"), 0644)
+	_ = os.WriteFile(testFile, []byte("test"), 0o644)
 
 	// Modify existing file
 	readmeFile := filepath.Join(repoDir, "README.md")
-	_ = os.WriteFile(readmeFile, []byte("# Modified"), 0644)
+	_ = os.WriteFile(readmeFile, []byte("# Modified"), 0o644)
 
 	if !client.HasUncommittedChanges(repoDir) {
 		t.Fatal("Should have uncommitted changes")
@@ -281,7 +281,7 @@ func TestGitClient_Stash(t *testing.T) {
 
 	// Create uncommitted changes
 	readmeFile := filepath.Join(repoDir, "README.md")
-	_ = os.WriteFile(readmeFile, []byte("# Modified for stash"), 0644)
+	_ = os.WriteFile(readmeFile, []byte("# Modified for stash"), 0o644)
 
 	// Stash changes
 	err := client.Stash(repoDir)
@@ -302,7 +302,7 @@ func TestGitClient_StashPop(t *testing.T) {
 
 	// Create and stash changes
 	readmeFile := filepath.Join(repoDir, "README.md")
-	_ = os.WriteFile(readmeFile, []byte("# Modified for stash pop"), 0644)
+	_ = os.WriteFile(readmeFile, []byte("# Modified for stash pop"), 0o644)
 	_ = client.Stash(repoDir)
 
 	// Pop stash
@@ -328,7 +328,7 @@ func TestGitClient_Merge(t *testing.T) {
 	_ = cmd.Run()
 
 	featureFile := filepath.Join(repoDir, "feature.txt")
-	_ = os.WriteFile(featureFile, []byte("feature content"), 0644)
+	_ = os.WriteFile(featureFile, []byte("feature content"), 0o644)
 
 	cmd = exec.Command("git", "-C", repoDir, "add", ".")
 	_ = cmd.Run()
@@ -364,7 +364,7 @@ func TestGitClient_MergeAbort(t *testing.T) {
 	// Create feature branch with conflicting change
 	cmd := exec.Command("git", "-C", repoDir, "checkout", "-b", "conflict-branch")
 	_ = cmd.Run()
-	_ = os.WriteFile(readmeFile, []byte("# Feature version"), 0644)
+	_ = os.WriteFile(readmeFile, []byte("# Feature version"), 0o644)
 	cmd = exec.Command("git", "-C", repoDir, "add", ".")
 	_ = cmd.Run()
 	cmd = exec.Command("git", "-C", repoDir, "commit", "-m", "Feature change")
@@ -373,7 +373,7 @@ func TestGitClient_MergeAbort(t *testing.T) {
 	// Switch to base and make conflicting change
 	cmd = exec.Command("git", "-C", repoDir, "checkout", baseBranch)
 	_ = cmd.Run()
-	_ = os.WriteFile(readmeFile, []byte("# Base version"), 0644)
+	_ = os.WriteFile(readmeFile, []byte("# Base version"), 0o644)
 	cmd = exec.Command("git", "-C", repoDir, "add", ".")
 	_ = cmd.Run()
 	cmd = exec.Command("git", "-C", repoDir, "commit", "-m", "Base change")
