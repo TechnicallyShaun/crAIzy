@@ -97,9 +97,11 @@ func (t *TmuxClient) SessionExists(id string) bool {
 }
 
 // CapturePaneOutput captures the last N lines from a tmux pane.
-// Command: tmux capture-pane -t {id} -p -l {lines}
+// Command: tmux capture-pane -t {id} -p -S -{lines}
+// Uses -S with negative number to start from N lines back in history.
 func (t *TmuxClient) CapturePaneOutput(sessionID string, lines int) (string, error) {
-	cmd := exec.Command("tmux", "capture-pane", "-t", sessionID, "-p", "-l", strconv.Itoa(lines))
+	startLine := "-" + strconv.Itoa(lines)
+	cmd := exec.Command("tmux", "capture-pane", "-t", sessionID, "-p", "-S", startLine)
 	output, err := cmd.Output()
 	return string(output), err
 }
