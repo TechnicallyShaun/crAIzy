@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/TechnicallyShaun/crAIzy/internal/logging"
 	"github.com/TechnicallyShaun/crAIzy/internal/tui/theme"
 )
 
@@ -20,17 +21,20 @@ func NewTmuxClient() *TmuxClient {
 // CreateSession creates a new detached tmux session with a custom status bar.
 // Command: tmux new-session -d -s {id} -c {workDir} {command}
 func (t *TmuxClient) CreateSession(id, command, workDir string) error {
+	logging.Entry("id", id, "command", command, "workDir", workDir)
 	args := []string{"new-session", "-d", "-s", id, "-c", workDir}
 	if command != "" {
 		args = append(args, command)
 	}
 	cmd := exec.Command("tmux", args...)
 	if err := cmd.Run(); err != nil {
+		logging.Error(err, "id", id)
 		return err
 	}
 
 	// Configure custom status bar for this session
 	t.configureStatusBar(id)
+	logging.Info("tmux session created, id=%s", id)
 	return nil
 }
 
@@ -65,16 +69,24 @@ func (t *TmuxClient) configureStatusBar(sessionID string) {
 // KillSession terminates a tmux session.
 // Command: tmux kill-session -t {id}
 func (t *TmuxClient) KillSession(id string) error {
+	logging.Entry("id", id)
 	cmd := exec.Command("tmux", "kill-session", "-t", id)
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		logging.Error(err, "id", id)
+		return err
+	}
+	logging.Info("tmux session killed, id=%s", id)
+	return nil
 }
 
 // ListSessions returns all tmux session names.
 // Command: tmux list-sessions -F "#{session_name}"
 func (t *TmuxClient) ListSessions() ([]string, error) {
+	logging.Entry()
 	cmd := exec.Command("tmux", "list-sessions", "-F", "#{session_name}")
 	output, err := cmd.Output()
 	if err != nil {
+		logging.Error(err)
 		return nil, err
 	}
 
@@ -86,28 +98,37 @@ func (t *TmuxClient) ListSessions() ([]string, error) {
 			sessions = append(sessions, line)
 		}
 	}
+	logging.Debug("listed %d tmux sessions", len(sessions))
 	return sessions, nil
 }
 
 // AttachCmd returns an exec.Cmd that can be used to attach to a session.
 // This command can be passed to tea.ExecProcess for proper terminal handling.
 func (t *TmuxClient) AttachCmd(id string) *exec.Cmd {
+	logging.Entry("id", id)
 	return exec.Command("tmux", "attach", "-t", id)
 }
 
 // SessionExists checks if a tmux session exists.
 // Command: tmux has-session -t {id}
 func (t *TmuxClient) SessionExists(id string) bool {
+	logging.Entry("id", id)
 	cmd := exec.Command("tmux", "has-session", "-t", id)
-	return cmd.Run() == nil
+	exists := cmd.Run() == nil
+	logging.Debug("session exists=%v, id=%s", exists, id)
+	return exists
 }
 
 // CapturePaneOutput captures the last N lines from a tmux pane.
 // Command: tmux capture-pane -t {id} -p -S -{lines}
 // Uses -S with negative number to start from N lines back in history.
 func (t *TmuxClient) CapturePaneOutput(sessionID string, lines int) (string, error) {
+	logging.Entry("sessionID", sessionID, "lines", lines)
 	startLine := "-" + strconv.Itoa(lines)
 	cmd := exec.Command("tmux", "capture-pane", "-t", sessionID, "-p", "-S", startLine)
 	output, err := cmd.Output()
+	if err != nil {
+		logging.Error(err, "sessionID", sessionID)
+	}
 	return string(output), err
 }

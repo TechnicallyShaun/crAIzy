@@ -11,6 +11,7 @@ import (
 	"github.com/TechnicallyShaun/crAIzy/internal/domain"
 	"github.com/TechnicallyShaun/crAIzy/internal/infra"
 	"github.com/TechnicallyShaun/crAIzy/internal/infra/store"
+	"github.com/TechnicallyShaun/crAIzy/internal/logging"
 	"github.com/TechnicallyShaun/crAIzy/internal/tui"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -36,6 +37,15 @@ func main() {
 
 	// Detect project name (parent folder of cwd)
 	project := filepath.Base(workDir)
+
+	// Initialize logging to .craizy directory
+	logDir := filepath.Join(workDir, ".craizy")
+	if err := logging.Init(logDir); err != nil {
+		fmt.Printf("Failed to initialize logging: %v\n", err)
+		os.Exit(1)
+	}
+	defer logging.Close()
+	logging.Info("crAIzy starting, project=%s, workDir=%s", project, workDir)
 
 	// Create database directory
 	homeDir, err := os.UserHomeDir()
