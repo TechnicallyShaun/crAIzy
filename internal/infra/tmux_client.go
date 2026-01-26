@@ -139,7 +139,7 @@ func (t *TmuxClient) CapturePaneOutput(sessionID string, lines int) (string, err
 // Command: tmux send-keys -t {id} {text} Enter
 func (t *TmuxClient) SendKeys(sessionID, text string) error {
 	logging.Entry("sessionID", sessionID, "textLen", len(text))
-	cmd := exec.Command("tmux", "send-keys", "-t", sessionID, text, "Enter")
+	cmd := exec.Command("tmux", "send-keys", "-t", sessionID, text, "C-m")
 	if err := cmd.Run(); err != nil {
 		logging.Error(err, "sessionID", sessionID)
 		return err
