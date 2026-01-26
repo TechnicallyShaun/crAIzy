@@ -320,10 +320,10 @@ func (m Model) View() string {
 
 // buildMergeConflictMessage creates an instructional message for the agent terminal.
 func buildMergeConflictMessage(baseBranch string, conflictFiles []string) string {
-	msg := fmt.Sprintf("echo 'Merging this worktree into %s has failed due to a conflict.", baseBranch)
+	msg := fmt.Sprintf("Merging this worktree into %s has failed due to a conflict.", baseBranch)
 	if len(conflictFiles) > 0 {
 		msg += fmt.Sprintf(" Conflicting files: %s.", strings.Join(conflictFiles, ", "))
 	}
-	msg += " Resolve and commit the conflicts.'"
+	msg += " Resolve and commit the conflicts."
 	return msg
 }

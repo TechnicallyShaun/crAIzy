@@ -136,10 +136,11 @@ func (t *TmuxClient) CapturePaneOutput(sessionID string, lines int) (string, err
 }
 
 // SendKeys sends text/commands to a tmux session.
-// Command: tmux send-keys -t {id} {text} Enter
+// Command: tmux send-keys -t {id} {text} C-m
+// Note: C-m (Ctrl+M) sends the actual carriage return character that CLI tools expect.
 func (t *TmuxClient) SendKeys(sessionID, text string) error {
 	logging.Entry("sessionID", sessionID, "textLen", len(text))
-	cmd := exec.Command("tmux", "send-keys", "-t", sessionID, text, "Enter")
+	cmd := exec.Command("tmux", "send-keys", "-t", sessionID, text, "C-m")
 	if err := cmd.Run(); err != nil {
 		logging.Error(err, "sessionID", sessionID)
 		return err
