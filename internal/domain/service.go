@@ -401,6 +401,8 @@ func (s *AgentService) AbortMerge() error {
 }
 
 // SendMessageToAgent sends a message to the agent's tmux terminal.
+// Deprecated: Use MessageService.Notify() for ephemeral notifications
+// or MessageService.Send() for tracked messages.
 func (s *AgentService) SendMessageToAgent(sessionID, message string) error {
 	logging.Entry("sessionID", sessionID)
 	return s.tmux.SendKeys(sessionID, message)

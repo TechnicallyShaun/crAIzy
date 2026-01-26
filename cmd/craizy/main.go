@@ -167,8 +167,8 @@ func runTUIInner() int {
 	// Reconcile any zombie sessions before starting
 	_ = agentService.Reconcile()
 
-	// Start TUI with the agent service
-	p := tea.NewProgram(tui.NewModel(agentService))
+	// Start TUI with services
+	p := tea.NewProgram(tui.NewModel(agentService, messageService))
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		return 1

@@ -101,6 +101,30 @@ func (s *MessageService) MarkRead(messageID string) error {
 	return s.store.MarkRead(messageID)
 }
 
+// Notify sends an immediate, non-persisted notification to an agent's tmux session.
+// Use this for ephemeral messages like merge conflict instructions that don't need tracking.
+// For tracked, persistent messages, use Send() instead.
+func (s *MessageService) Notify(agentID, text string) error {
+	logging.Entry("agentID", agentID, "textLen", len(text))
+
+	if agentID == HumanParticipantID {
+		return fmt.Errorf("cannot send tmux notification to human")
+	}
+
+	agent := s.agents.Get(agentID)
+	if agent == nil {
+		return fmt.Errorf("agent not found: %s", agentID)
+	}
+
+	if err := s.tmux.SendKeys(agent.ID, text); err != nil {
+		logging.Error(err, "agentID", agentID, "action", "notify")
+		return fmt.Errorf("failed to send notification: %w", err)
+	}
+
+	logging.Info("notification sent to agent, agentID=%s", agentID)
+	return nil
+}
+
 // isActive checks if a recipient is active (has a running tmux session).
 func (s *MessageService) isActive(agentID string) bool {
 	// Human messages are never auto-delivered
@@ -118,15 +142,10 @@ func (s *MessageService) isActive(agentID string) bool {
 
 // deliverToTmux sends a notification to the recipient's tmux session.
 func (s *MessageService) deliverToTmux(msg *Message) {
-	agent := s.agents.Get(msg.To)
-	if agent == nil {
-		return
-	}
-
 	notification := fmt.Sprintf("\n[MESSAGE from %s (%s)]: %s\n",
 		msg.From, msg.Type, msg.Content)
 
-	if err := s.tmux.SendKeys(agent.ID, notification); err != nil {
-		logging.Error(err, "agentID", agent.ID, "action", "deliver to tmux")
+	if err := s.Notify(msg.To, notification); err != nil {
+		logging.Error(err, "msgID", msg.ID, "action", "deliver to tmux")
 	}
 }

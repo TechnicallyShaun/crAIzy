@@ -20,7 +20,7 @@ func TestPreviewPollInterval(t *testing.T) {
 
 func TestModel_Update_PreviewTickMsg(t *testing.T) {
 	t.Run("skips capture when ported in", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 		m.isPortedIn = true
 		m.width = 100
 		m.height = 40
@@ -40,7 +40,7 @@ func TestModel_Update_PreviewTickMsg(t *testing.T) {
 	})
 
 	t.Run("captures when not ported in", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 		m.isPortedIn = false
 		m.width = 100
 		m.height = 40
@@ -57,7 +57,7 @@ func TestModel_Update_PreviewTickMsg(t *testing.T) {
 
 func TestModel_Update_PreviewUpdatedMsg(t *testing.T) {
 	t.Run("updates content area preview", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 		m.width = 100
 		m.height = 40
 		m.contentArea.SetSize(75, 35)
@@ -77,7 +77,7 @@ func TestModel_Update_PreviewUpdatedMsg(t *testing.T) {
 
 func TestModel_Update_AgentsUpdatedMsg(t *testing.T) {
 	t.Run("starts polling when agents exist", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 		m.width = 100
 		m.height = 40
 
@@ -95,7 +95,7 @@ func TestModel_Update_AgentsUpdatedMsg(t *testing.T) {
 	})
 
 	t.Run("clears preview when no agents", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 		m.width = 100
 		m.height = 40
 		m.contentArea.SetPreview("old content")
@@ -112,7 +112,7 @@ func TestModel_Update_AgentsUpdatedMsg(t *testing.T) {
 
 func TestModel_Update_AgentDetachedMsg(t *testing.T) {
 	t.Run("clears ported in flag", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 		m.isPortedIn = true
 		m.width = 100
 		m.height = 40
@@ -127,7 +127,7 @@ func TestModel_Update_AgentDetachedMsg(t *testing.T) {
 	})
 
 	t.Run("returns commands to resume polling", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 		m.isPortedIn = true
 		m.width = 100
 		m.height = 40
@@ -144,7 +144,7 @@ func TestModel_Update_AgentDetachedMsg(t *testing.T) {
 
 func TestModel_Update_NavigationKeys(t *testing.T) {
 	t.Run("up key is processed without panic", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 		m.width = 100
 		m.height = 40
 		m.sideMenu.SetSize(25, 35)
@@ -160,7 +160,7 @@ func TestModel_Update_NavigationKeys(t *testing.T) {
 	})
 
 	t.Run("down key is processed without panic", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 		m.width = 100
 		m.height = 40
 		m.sideMenu.SetSize(25, 35)
@@ -178,7 +178,7 @@ func TestModel_Update_NavigationKeys(t *testing.T) {
 
 func TestModel_Update_WindowSizeMsg(t *testing.T) {
 	t.Run("sets dimensions correctly", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 
 		msg := tea.WindowSizeMsg{Width: 120, Height: 40}
 		newModel, _ := m.Update(msg)
@@ -193,7 +193,7 @@ func TestModel_Update_WindowSizeMsg(t *testing.T) {
 	})
 
 	t.Run("calculates correct content area size", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 
 		msg := tea.WindowSizeMsg{Width: 100, Height: 40}
 		newModel, _ := m.Update(msg)
@@ -210,7 +210,7 @@ func TestModel_Update_WindowSizeMsg(t *testing.T) {
 func TestModel_Update_EnterKey(t *testing.T) {
 	t.Run("sets ported in flag", func(t *testing.T) {
 		// Create a mock service that doesn't actually attach
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 		m.width = 100
 		m.height = 40
 
@@ -228,7 +228,7 @@ func TestModel_Update_EnterKey(t *testing.T) {
 
 func TestModel_pollPreview(t *testing.T) {
 	t.Run("returns tick command", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 
 		cmd := m.pollPreview()
 
@@ -240,7 +240,7 @@ func TestModel_pollPreview(t *testing.T) {
 
 func TestModel_capturePreview(t *testing.T) {
 	t.Run("returns nil when no agent selected", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 		m.width = 100
 		m.height = 40
 
@@ -253,7 +253,7 @@ func TestModel_capturePreview(t *testing.T) {
 	})
 
 	t.Run("returns nil when no service", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 		m.width = 100
 		m.height = 40
 
@@ -267,7 +267,7 @@ func TestModel_capturePreview(t *testing.T) {
 
 func TestModel_View(t *testing.T) {
 	t.Run("returns loading when no dimensions", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 		m.width = 0
 		m.height = 0
 
@@ -279,7 +279,7 @@ func TestModel_View(t *testing.T) {
 	})
 
 	t.Run("renders full layout when dimensions set", func(t *testing.T) {
-		m := NewModel(nil)
+		m := NewModel(nil, nil)
 		m.width = 100
 		m.height = 40
 		m.sideMenu.SetSize(25, 35)

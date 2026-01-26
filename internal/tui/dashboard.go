@@ -17,23 +17,25 @@ import (
 const PreviewPollInterval = 2 * time.Second
 
 type Model struct {
-	width         int
-	height        int
-	sideMenu      SideMenuModel
-	contentArea   ContentAreaModel
-	quickCommands QuickCommandsModel
-	modal         Modal
-	agentService  *domain.AgentService
-	isPortedIn    bool
+	width          int
+	height         int
+	sideMenu       SideMenuModel
+	contentArea    ContentAreaModel
+	quickCommands  QuickCommandsModel
+	modal          Modal
+	agentService   *domain.AgentService
+	messageService *domain.MessageService
+	isPortedIn     bool
 }
 
-func NewModel(agentService *domain.AgentService) Model {
+func NewModel(agentService *domain.AgentService, messageService *domain.MessageService) Model {
 	return Model{
-		sideMenu:      NewSideMenu(),
-		contentArea:   NewContentArea(),
-		quickCommands: NewQuickCommands(),
-		modal:         NewModal(),
-		agentService:  agentService,
+		sideMenu:       NewSideMenu(),
+		contentArea:    NewContentArea(),
+		quickCommands:  NewQuickCommands(),
+		modal:          NewModal(),
+		agentService:   agentService,
+		messageService: messageService,
 	}
 }
 
@@ -127,9 +129,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			_ = m.agentService.AbortMerge()
 
 			// If user chose to send to terminal, send the instructional message
-			if msg.Choice == MergeConflictSendToTerminal {
+			if msg.Choice == MergeConflictSendToTerminal && m.messageService != nil {
 				message := buildMergeConflictMessage(msg.BaseBranch, msg.ConflictFiles)
-				_ = m.agentService.SendMessageToAgent(msg.AgentID, message)
+				_ = m.messageService.Notify(msg.AgentID, message)
 			}
 		}
 		return m, nil
