@@ -92,3 +92,24 @@ type IAgentStore interface {
 	// UpdateStatus updates the status of an agent.
 	UpdateStatus(id string, status AgentStatus) error
 }
+
+// IMessageStore defines the interface for message persistence.
+type IMessageStore interface {
+	// Save stores a new message.
+	Save(msg *Message) error
+
+	// MarkRead marks a message as read.
+	MarkRead(id string) error
+
+	// ListUnread returns all unread messages for a recipient.
+	ListUnread(recipientID string) ([]*Message, error)
+
+	// List returns messages for a recipient with a limit (0 = no limit).
+	List(recipientID string, limit int) ([]*Message, error)
+
+	// Get retrieves a message by ID.
+	Get(id string) (*Message, error)
+
+	// UnreadCount returns the count of unread messages for a recipient.
+	UnreadCount(recipientID string) (int, error)
+}

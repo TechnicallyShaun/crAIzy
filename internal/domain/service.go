@@ -24,6 +24,7 @@ type AgentService struct {
 	git        IGitClient
 	project    string
 	workDir    string
+	messageSvc *MessageService // Optional - set via SetMessageService
 }
 
 // NewAgentService creates a new AgentService with the given dependencies.
@@ -36,6 +37,12 @@ func NewAgentService(tmux ITmuxClient, store IAgentStore, dispatcher IEventDispa
 		project:    project,
 		workDir:    workDir,
 	}
+}
+
+// SetMessageService sets the message service for delivering queued messages.
+// This is optional - if not set, queued message delivery is skipped.
+func (s *AgentService) SetMessageService(messageSvc *MessageService) {
+	s.messageSvc = messageSvc
 }
 
 // Create spawns a new agent session and stores it.
@@ -114,8 +121,53 @@ func (s *AgentService) Create(agentType, name, command string) (*Agent, error) {
 		Timestamp: time.Now(),
 	})
 
+	// Deliver any queued messages
+	s.deliverQueuedMessages(agent)
+
 	logging.Info("agent created successfully, sessionID=%s", sessionID)
 	return agent, nil
+}
+
+// deliverQueuedMessages delivers any unread messages to a newly created agent.
+func (s *AgentService) deliverQueuedMessages(agent *Agent) {
+	if s.messageSvc == nil {
+		return
+	}
+
+	messages, err := s.messageSvc.ListUnread(agent.ID)
+	if err != nil {
+		logging.Error(err, "agentID", agent.ID, "action", "list queued messages")
+		return
+	}
+
+	if len(messages) == 0 {
+		return
+	}
+
+	// Header
+	header := fmt.Sprintf("\n=== %d queued messages ===\n", len(messages))
+	if err := s.tmux.SendKeys(agent.ID, header); err != nil {
+		logging.Error(err, "agentID", agent.ID, "action", "send header")
+		return
+	}
+
+	// Deliver each message
+	for _, msg := range messages {
+		notification := fmt.Sprintf("[%s from %s]: %s\n",
+			msg.Type, msg.From, msg.Content)
+		if err := s.tmux.SendKeys(agent.ID, notification); err != nil {
+			logging.Error(err, "agentID", agent.ID, "msgID", msg.ID, "action", "deliver message")
+			continue
+		}
+		if err := s.messageSvc.MarkRead(msg.ID); err != nil {
+			logging.Error(err, "msgID", msg.ID, "action", "mark read")
+		}
+	}
+
+	// Footer
+	if err := s.tmux.SendKeys(agent.ID, "=== End of queued messages ===\n\n"); err != nil {
+		logging.Error(err, "agentID", agent.ID, "action", "send footer")
+	}
 }
 
 // Kill terminates an agent session.
