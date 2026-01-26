@@ -43,6 +43,12 @@ func (s *SQLiteAgentStore) Close() error {
 	return s.db.Close()
 }
 
+// DB returns the underlying database connection.
+// This allows other stores to share the same connection.
+func (s *SQLiteAgentStore) DB() *sql.DB {
+	return s.db
+}
+
 // Add stores a new agent.
 func (s *SQLiteAgentStore) Add(agent *domain.Agent) error {
 	logging.Entry("agentID", agent.ID)
